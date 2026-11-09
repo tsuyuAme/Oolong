@@ -103,10 +103,10 @@ fun SegmentedControl(
             modifier = Modifier
                 .onSizeChanged { trackSize = it }
                 .clip(Corners.full)
-                .background(trackColor)
-                // What the held pill sees: the labels, and the pill as it fades. The track shows
-                // through the glass as it is
+                // What the held pill sees: the track, its labels, and the pill as it fades, so what
+                // it bends from past its edge is the track rather than loose labels
                 .hazeSource(glassState)
+                .background(trackColor)
                 .drawBehind {
                     val width = (size.width - inset * 2) / count
                     val height = size.height - inset * 2

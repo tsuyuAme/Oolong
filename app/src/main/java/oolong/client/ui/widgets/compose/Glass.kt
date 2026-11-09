@@ -741,16 +741,16 @@ fun Modifier.lensTarget(): Modifier {
  */
 @OptIn(ExperimentalHazeApi::class)
 @Composable
-fun Modifier.glassLens(shape: Shape): Modifier {
+fun Modifier.glassLens(shape: Shape, optics: GlassOptics = UnblurredClearOptics): Modifier {
     val source = currentGlassSource()
     if (source == null || currentGlassTier() != GlassTier.Glass) return this
     val background = ExtendedTheme.colors.background
-    val style = remember(shape, background) {
+    val style = remember(shape, background, optics) {
         GlassStyle.clear.then {
             shape(shape.glassShape())
             backgroundColor(background)
             // A lens magnifies what is under it; it does not frost it.
-            optics(UnblurredClearOptics)
+            optics(optics)
         }
     }
     // Not inside any source of this state, so it sees the content and the lens targets. A lens is
@@ -803,6 +803,29 @@ fun Modifier.controlLens(state: HazeState, shape: Shape, alpha: Float, optics: G
 }
 
 /**
+ * [controlLens] for a control in floating chrome, marked with [lensTarget]: like the navigation
+ * bar's lens, it sees the content behind the chrome and the chrome itself, on the page's ground,
+ * so what it bends past the control's edge is the page rather than nothing. Outside chrome it is
+ * [controlLens] over [fallback], which should capture the control.
+ */
+@OptIn(ExperimentalHazeApi::class)
+@Composable
+fun Modifier.chromeControlLens(fallback: HazeState, shape: Shape, alpha: Float, optics: GlassOptics): Modifier {
+    if (alpha <= 0f || currentGlassTier() != GlassTier.Glass) return this
+    val source = currentGlassSource() ?: return controlLens(fallback, shape, alpha, optics)
+    val background = ExtendedTheme.colors.background
+    val style = remember(shape, alpha, optics, background) {
+        GlassStyle.clear.then {
+            shape(shape.glassShape())
+            backgroundColor(background)
+            optics(optics)
+            alpha(alpha)
+        }
+    }
+    return clipToSmooth(shape).hazeGlass(input = source.input, style = style, performanceMode = HazePerformanceMode.Quality)
+}
+
+/**
  * [UnblurredClearOptics] for a control a few dozen dp across: refraction only at the rim, so what is
  * under the part reads sharply, as through the navigation bar's lens.
  */
@@ -818,8 +841,8 @@ private val ControlLensOptics = GlassOptics(
 )
 
 /**
- * The navigation bar's lens bent to a part [height] tall: its rim as deep, and what it covers moved
- * as far, for the part's size, so a held pill reads as the same glass on a smaller scale.
+ * The lens of the navigation bar, the tabs and the segmented controls, bent for a part [height]
+ * tall, so they read as the same glass at each size.
  */
 @OptIn(ExperimentalHazeApi::class)
 fun liquidLensOptics(height: Dp): GlassOptics = UnblurredClearOptics.copy(
@@ -827,8 +850,12 @@ fun liquidLensOptics(height: Dp): GlassOptics = UnblurredClearOptics.copy(
     refractionProfile = RefractionProfile.Edge(height * NavLensRim),
 )
 
-/** [UnblurredClearOptics]' displacement and rim for the navigation bar's lens, as parts of its height. */
-private const val NavLensDisplacement = 0.72f
+/**
+ * How far in a lens's rim reaches for what it shows, and how wide that rim is, as parts of its
+ * height. A lens is a little larger than the item it lifts off, so a rim reaching much further in
+ * would fold the item's label into the part that hangs past the bar.
+ */
+private const val NavLensDisplacement = 0.25f
 private const val NavLensRim = 0.36f
 
 /**

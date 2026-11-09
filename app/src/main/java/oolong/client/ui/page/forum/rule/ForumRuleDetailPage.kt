@@ -25,7 +25,9 @@ import oolong.client.arch.LoadState
 import oolong.client.model.ForumRuleAuthor
 import oolong.client.model.ForumRuleDetail
 import oolong.client.model.ForumRuleItem
-import oolong.client.ui.common.TextContentRender
+import oolong.client.model.PostContent
+import oolong.client.model.TextSpan
+import oolong.client.ui.common.PostBody
 import oolong.client.ui.common.theme.compose.TiebaLiteTheme
 import oolong.client.ui.navigation.ForumRuleDetailKey
 import oolong.client.ui.navigation.Navigator
@@ -131,18 +133,14 @@ private fun ForumRuleDetailContent(detail: ForumRuleDetail, contentPadding: Padd
                             style = MaterialTheme.typography.subtitle1
                         )
                     }
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        rule.content.fastForEach { render ->
-                            render.Render()
-                        }
-                    }
+                    PostBody(content = rule.content, blockSpacing = 4.dp)
                 }
             }
         }
     }
 }
+
+private fun plainRule(text: String) = persistentListOf<PostContent>(PostContent.Text(persistentListOf(TextSpan.Plain(text))))
 
 private val previewDetail = ForumRuleDetail(
     title = "本吧吧规",
@@ -150,8 +148,8 @@ private val previewDetail = ForumRuleDetail(
     preface = "为维护良好的讨论氛围，请遵守以下规定。",
     author = ForumRuleAuthor(name = "bazhu", nameShow = "吧主", portrait = ""),
     rules = persistentListOf(
-        ForumRuleItem("一、发帖规范", persistentListOf(TextContentRender("标题需清楚描述帖子内容。"))),
-        ForumRuleItem("二、禁止行为", persistentListOf(TextContentRender("禁止广告、引战和人身攻击。"))),
+        ForumRuleItem("一、发帖规范", plainRule("标题需清楚描述帖子内容。")),
+        ForumRuleItem("二、禁止行为", plainRule("禁止广告、引战和人身攻击。")),
     ),
 )
 

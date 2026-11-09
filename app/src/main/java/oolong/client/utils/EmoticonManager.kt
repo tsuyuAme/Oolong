@@ -32,6 +32,8 @@ import oolong.client.models.EmoticonCache
 import oolong.client.ui.widgets.compose.rememberTextSize
 import java.io.File
 import java.lang.ref.WeakReference
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 @Composable
 fun calcLineHeightPx(style: TextStyle): Int =
@@ -106,31 +108,36 @@ object EmoticonManager {
     )
 
     private lateinit var contextRef: WeakReference<Context>
-    private val emoticonIds: MutableList<String> = mutableListOf()
-    private val emoticonMapping: MutableMap<String, String> = mutableMapOf()
-    private val drawableCache: MutableMap<String, Drawable> = mutableMapOf()
+
+    // Posts register emoticons while they are mapped, off the main thread, as the UI reads these
+    private val emoticonIds = CopyOnWriteArrayList<String>()
+    private val emoticonMapping = ConcurrentHashMap<String, String>()
+    private val drawableCache = ConcurrentHashMap<String, Drawable>()
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
-    /** Emoticons [sizePx] across, in the [density] of the text they sit in. */
+    /**
+     * Inline content for the emoticons [ids], [sizePx] across in the [density] of the text they
+     * sit in. Each is described by its name, taken from the alternate text `#(name)`.
+     */
     fun getEmoticonInlineContent(
+        ids: Set<String>,
         sizePx: Float,
         density: Density,
     ): Map<String, InlineTextContent> {
+        if (ids.isEmpty()) return emptyMap()
         val size = with(density) { sizePx.toSp() }
-        return emoticonIds.associate { id ->
-            "Emoticon#$id" to InlineTextContent(
-                placeholder = Placeholder(size, size, PlaceholderVerticalAlign.TextCenter),
-                children = {
-                    AsyncImage(
-                        model = rememberEmoticon(id = id),
-                        contentDescription = stringResource(
-                            id = R.string.emoticon,
-                            getEmoticonNameById(id) ?: ""
-                        ),
-                        modifier = Modifier.size(with(density) { sizePx.toDp() })
-                    )
-                }
-            )
+        val placeholder = Placeholder(size, size, PlaceholderVerticalAlign.TextCenter)
+        return ids.associate { id ->
+            EmoticonUtil.emoticonInlineId(id) to InlineTextContent(placeholder) { alternateText ->
+                AsyncImage(
+                    model = rememberEmoticon(id = id),
+                    contentDescription = stringResource(
+                        id = R.string.emoticon,
+                        alternateText.removePrefix("#(").removeSuffix(")")
+                    ),
+                    modifier = Modifier.size(with(density) { sizePx.toDp() })
+                )
+            }
         }
     }
 
@@ -138,17 +145,9 @@ object EmoticonManager {
         contextRef = WeakReference(context)
         val emoticonCache = getEmoticonDataCache()
         if (emoticonCache.ids.isEmpty()) {
-            for (i in 1..50) {
-                emoticonIds.add("image_emoticon$i")
-            }
-            for (i in 61..101) {
-                emoticonIds.add("image_emoticon$i")
-            }
-            for (i in 125..137) {
-                emoticonIds.add("image_emoticon$i")
-            }
+            emoticonIds.addAllAbsent(((1..50) + (61..101) + (125..137)).map { "image_emoticon$it" })
         } else {
-            emoticonIds.addAll(emoticonCache.ids)
+            emoticonIds.addAllAbsent(emoticonCache.ids)
         }
         if (emoticonCache.mapping.isEmpty()) {
             emoticonMapping.putAll(DEFAULT_EMOTICON_MAPPING)
@@ -169,7 +168,7 @@ object EmoticonManager {
             if (emoticonDataCacheFile.exists() || emoticonDataCacheFile.createNewFile()) {
                 FileUtil.writeFile(
                     emoticonDataCacheFile,
-                    Json.encodeToString(EmoticonCache(emoticonIds, emoticonMapping)),
+                    Json.encodeToString(EmoticonCache(emoticonIds.toList(), emoticonMapping.toMap())),
                     false
                 )
             }
@@ -234,9 +233,7 @@ object EmoticonManager {
         if (id == null) {
             return null
         }
-        if (drawableCache.containsKey(id)) {
-            return drawableCache[id]
-        }
+        drawableCache[id]?.let { return it }
         val resId = getEmoticonResId(context, id)
         if (resId != 0) {
             return AppCompatResources.getDrawable(context, resId).also { drawableCache[id] = it!! }
@@ -288,17 +285,10 @@ object EmoticonManager {
     }
 
     fun registerEmoticon(id: String, name: String) {
-        val realId = if (id == "image_emoticon") "image_emoticon1" else id
-        var changed = false
-        if (!emoticonIds.contains(realId)) {
-            emoticonIds.add(realId)
-            changed = true
-        }
-        if (!emoticonMapping.containsKey(name)) {
-            emoticonMapping[name] = realId
-            changed = true
-        }
-        if (changed) {
+        val realId = EmoticonUtil.normalizeEmoticonId(id)
+        val newId = emoticonIds.addIfAbsent(realId)
+        val newName = emoticonMapping.putIfAbsent(name, realId) == null
+        if (newId || newName) {
             coroutineScope.launch {
                 updateCache()
             }

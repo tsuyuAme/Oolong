@@ -264,8 +264,8 @@ fun ThreadContent(
         if (showTitle) {
             val goodTip = stringResource(id = R.string.tip_good)
             val accent = ExtendedTheme.colors.accent
-            HighlightText(
-                text = buildAnnotatedString {
+            val titleText = remember(isGood, goodTip, accent, tabName, title) {
+                buildAnnotatedString {
                     if (isGood) {
                         withStyle(style = SpanStyle(color = accent)) { append(goodTip) }
                         append(" ")
@@ -274,8 +274,11 @@ fun ThreadContent(
                         append(tabName)
                         append(" | ")
                     }
-                    append(title)
-                },
+                    append(title.emoticonString)
+                }
+            }
+            HighlightText(
+                text = titleText,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
                 color = ExtendedTheme.colors.text,
@@ -288,7 +291,7 @@ fun ThreadContent(
         }
         if (showAbstract) {
             HighlightText(
-                text = abstractText.emoticonString,
+                text = remember(abstractText) { abstractText.emoticonString },
                 fontSize = 15.sp,
                 lineHeight = 24.sp,
                 color = ExtendedTheme.colors.text,

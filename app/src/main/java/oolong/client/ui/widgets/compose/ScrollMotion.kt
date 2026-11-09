@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -158,9 +159,10 @@ fun Modifier.matchedGeometry(key: Any, progress: ScrollProgress): Modifier {
  * Over [away] of scroll it follows the scroll, and with [snapping] settles at whichever end is
  * nearer once the scroll stops. With [toggle], it instead flips to 1 once the content has gone on
  * by [away], and back once it has come back by as much, animating between: for a change that
- * should not stop halfway, like a bar folding to its icons. While [enabled] is false it stays at
- * 0, and it starts over at 0 whenever [resetKey] changes. [page] is the page to follow, by default
- * the one this is part of; hoist it with [rememberPageScrollState] to use it outside the page.
+ * should not stop halfway, like a bar folding to its icons; that state is kept while the page is
+ * away, as under another page. While [enabled] is false it stays at 0. [page] is the page to
+ * follow, by default the one this is part of; hoist it with [rememberPageScrollState] to use it
+ * outside the page.
  */
 @Composable
 fun rememberScrollProgress(
@@ -168,14 +170,18 @@ fun rememberScrollProgress(
     snapping: Boolean = true,
     toggle: Boolean = false,
     enabled: () -> Boolean = { true },
-    resetKey: Any? = null,
     page: PageScrollState? = LocalPageScroll.current,
 ): ScrollProgress {
     val distance = with(LocalDensity.current) { away.toPx() }
     val scope = rememberCoroutineScope()
     val currentEnabled by rememberUpdatedState(enabled)
-    val progress = remember(page, distance, snapping, toggle, resetKey) {
-        DirectedProgress(distance, snapping, toggle, scope) { currentEnabled() }
+    // Where a toggle was, as a fraction, to come back to after the page has been away
+    var savedToggle by rememberSaveable { mutableFloatStateOf(0f) }
+    val progress = remember(page, distance, snapping, toggle) {
+        DirectedProgress(distance, snapping, toggle, scope, initial = if (toggle) savedToggle else 0f) { currentEnabled() }
+    }
+    if (toggle) {
+        LaunchedEffect(progress) { snapshotFlow { progress.value }.collect { savedToggle = it } }
     }
     if (page != null) {
         DisposableEffect(page, progress) {
@@ -196,9 +202,11 @@ internal class DirectedProgress(
     private val snapping: Boolean,
     private val toggle: Boolean,
     private val scope: CoroutineScope,
+    /** Where it starts, as a fraction of [distance]. */
+    initial: Float = 0f,
     private val enabled: () -> Boolean,
 ) {
-    private var offset by mutableFloatStateOf(0f)
+    private var offset by mutableFloatStateOf(initial.coerceIn(0f, 1f) * distance)
     private var animating: Job? = null
     private var animatingTo = Float.NaN
 

@@ -2,7 +2,6 @@ package oolong.client.model
 
 import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.ImmutableList
-import oolong.client.ui.common.PbContentRender
 
 @Immutable
 data class ForumRuleDetail(
@@ -23,5 +22,5 @@ data class ForumRuleAuthor(
 @Immutable
 data class ForumRuleItem(
     val title: String,
-    val content: ImmutableList<PbContentRender>,
+    val content: ImmutableList<PostContent>,
 )
