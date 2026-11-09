@@ -114,6 +114,7 @@ private fun StatCardPlaceholder(modifier: Modifier = Modifier) {
 private fun StatCard(
     account: Account,
     onOpenFollows: (fans: Boolean) -> Unit,
+    onOpenPosts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val postNum by animateIntAsState(targetValue = account.postNum?.toIntOrNull() ?: 0, animationSpec = Motion.settle())
@@ -135,7 +136,8 @@ private fun StatCard(
         )
         StatCardItem(
             statNum = postNum,
-            statText = stringResource(id = R.string.title_stat_posts_num)
+            statText = stringResource(id = R.string.title_stat_posts_num),
+            onClick = onOpenPosts,
         )
     }
 }
@@ -454,6 +456,10 @@ fun UserScreen(
                         account = account,
                         onOpenFollows = { fans ->
                             navigator.navigate(UserFollowsKey(account.uid.toLong(), fans, account.nameShow ?: account.name))
+                        },
+                        onOpenPosts = {
+                            // initialTab = 1 → 回帖页签
+                            navigator.navigate(UserProfileKey(account.uid.toLong(), initialTab = 1))
                         },
                         modifier = StatsPadding,
                     )

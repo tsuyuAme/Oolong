@@ -75,7 +75,11 @@ data class ForumRuleDetailKey(val forumId: Long) : Key
 data class ForumSearchPostKey(val forumName: String, val forumId: Long) : Key
 
 @Serializable
-data class UserProfileKey(val uid: Long) : Key
+data class UserProfileKey(
+    val uid: Long,
+    /** 0 = 主题, 1 = 回帖, 2 = 关注的吧 */
+    val initialTab: Int = 0,
+) : Key
 
 /** Whom user [uid] follows, or with [fans] who follows them; [name] heads the page. */
 @Serializable

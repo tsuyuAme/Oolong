@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,6 +79,18 @@ fun PersonalizedPage(
     LaunchedEffect(Unit) { viewModel.open() }
     onGlobalEvent<GlobalEvent.Refresh>(filter = { it.key == "personalized" }) { viewModel.refresh() }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val lazyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = viewModel.scrollIndex,
+        initialFirstVisibleItemScrollOffset = viewModel.scrollOffset,
+    )
+    LaunchedEffect(lazyListState) {
+        snapshotFlow {
+            lazyListState.firstVisibleItemIndex to lazyListState.firstVisibleItemScrollOffset
+        }.collect { (index, offset) ->
+            viewModel.scrollIndex = index
+            viewModel.scrollOffset = offset
+        }
+    }
     PersonalizedScreen(
         state = state,
         events = rememberFeedThreadEvents(onAgree = viewModel::agree),
@@ -87,6 +100,7 @@ fun PersonalizedPage(
         onDislike = viewModel::dislike,
         onUndoDislike = viewModel::undoDislike,
         contentPadding = contentPadding,
+        listState = lazyListState,
     )
 }
 
@@ -105,11 +119,12 @@ fun PersonalizedScreen(
     onUndoDislike: (threadId: Long) -> Unit = {},
     onRefreshShown: (id: Int) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val list = state.list
     val refreshing = list.refresh == LoadStatus.Loading
     val error = (list.refresh as? LoadStatus.Error)?.error
-    val lazyListState = rememberLazyListState()
+    val lazyListState = listState
 
     val lastRefresh = state.lastRefresh
     // The new threads arrive in front of the one in view, which the list would otherwise keep in
