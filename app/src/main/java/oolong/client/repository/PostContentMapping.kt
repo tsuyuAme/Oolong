@@ -7,6 +7,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import oolong.client.api.models.protos.PbContent
 import oolong.client.model.PostContent
 import oolong.client.model.TextSpan
+import oolong.client.utils.EmoticonUtil.normalizeEmoticonId
 
 /** Learns the emoticons that appear in posts, so they can be used when replying. */
 fun interface EmoticonRegistry {
@@ -45,7 +46,7 @@ private fun PbContent.toTextSpan(): TextSpan? = when (type) {
     // 35: ad-like text, 40: keyword links in replies; both are shown as plain text
     0, 9, 27, 35, 40 -> TextSpan.Plain(text)
     1 -> TextSpan.Link(text, link, actualHost = misleadingLinkHost(text, link))
-    2 -> TextSpan.Emoticon(id = text, name = c)
+    2 -> TextSpan.Emoticon(id = normalizeEmoticonId(text), name = c)
     4 -> TextSpan.Mention(text, uid)
     18 -> topicName(text, link)?.let { TextSpan.Topic(text, it) } ?: TextSpan.Plain(text)
     5 -> if (src.isBlank()) TextSpan.VideoLink(text, url = text) else null

@@ -56,6 +56,7 @@ import oolong.client.model.SearchedPost
 import oolong.client.repository.BlockVerdict
 import oolong.client.ui.common.PbContentText
 import oolong.client.ui.common.relativeTime
+import oolong.client.ui.common.rememberTextLinkActions
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.PressFeedback
@@ -77,12 +78,14 @@ fun QuotePostCard(
     mediaCount: Int = pictures.size,
     keyword: String? = null,
 ) {
-    val quoteContentString = remember(quoted) {
+    val links = rememberTextLinkActions()
+    val quoteContentString = remember(quoted, links) {
         buildAnnotatedStringWithUser(
-            quoted.author.id.toString(),
+            quoted.author.id,
             quoted.author.name,
             quoted.author.nameShow,
-            quoted.content
+            quoted.content,
+            links,
         )
     }
     Column(
@@ -120,12 +123,14 @@ fun MainPostCard(
     mediaCount: Int = pictures.size,
     keyword: String? = null,
 ) {
-    val titleString = remember(thread) {
+    val links = rememberTextLinkActions()
+    val titleString = remember(thread, links) {
         buildAnnotatedStringWithUser(
-            thread.author.id.toString(),
+            thread.author.id,
             thread.author.name,
             thread.author.nameShow,
-            thread.title
+            thread.title,
+            links,
         )
     }
     Column(

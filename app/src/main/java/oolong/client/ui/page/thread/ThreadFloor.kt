@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -55,6 +56,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +67,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -72,8 +75,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
@@ -89,6 +94,7 @@ import oolong.client.ui.common.PostImage
 import oolong.client.ui.common.relativeTime
 import oolong.client.ui.common.rememberSubPostText
 import oolong.client.ui.common.shownIpLocation
+import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
@@ -105,6 +111,7 @@ import oolong.client.ui.widgets.compose.Chip
 import oolong.client.ui.widgets.compose.ContextMenuItem
 import oolong.client.ui.widgets.compose.buildChipInlineContent
 import oolong.client.ui.widgets.compose.longPressMenu
+import oolong.client.ui.widgets.compose.trimToCharacters
 import oolong.client.utils.ImageUtil
 import oolong.client.utils.StringUtil
 import oolong.client.utils.StringUtil.getShortNumString
@@ -113,14 +120,38 @@ import oolong.client.utils.StringUtil.getShortNumString
 private val Gutter = 52.dp
 private val GutterStart = 4.dp
 private val FloorAvatarSize = 36.dp
+
+/**
+ * The room above a floor's first line and below its last thing, together the 32dp between floors:
+ * twice the widest gap inside a floor, so floors part clearly while what belongs together stays
+ * together. Whatever ends a floor (its time, a reply, a link row, the capsule or block of replies)
+ * leaves exactly [FloorBottom] under it. Gaps inside a floor run 8, 12 and 16dp, each wider than
+ * the space between two lines of the body, and are measured between characters (see
+ * [trimToCharacters]), as they are seen.
+ */
+private val FloorTop = 16.dp
+private val FloorBottom = 16.dp
+
+/** Under each reply, before the next. */
+private val ReplyGap = 16.dp
+
+/** Between a floor's body and its time, which belongs to it. */
+private val BodyToTime = 12.dp
+
+/** From a floor's time to the replies under it, as between replies. */
+private val ToReplies = 16.dp
+
+/** From a reply's last line to its time. */
+private val ReplyToTime = 8.dp
+
+/** Between a floor's name and its body: they read as one, so closer than anything else in it. */
+private val NameToBody = 8.dp
+
 private val SubPostAvatarSize = 22.dp
 
 /** A reply's picture: at most this share of the text's width, and no taller than the cap. */
 private const val ReplyImageWidthFraction = 0.6f
 private val ReplyImageMaxHeight = 240.dp
-
-/** How far down a reply its avatar's centre is, on its first line, where its branch arrives. */
-private val ReplyAvatarCenter = 12.dp
 
 /** The rule down a floor and its branches: thin, and a light wash of the text colour. */
 private val RuleWidth = 1.25.dp
@@ -191,6 +222,8 @@ fun ThreadFloor(
     var floorCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val branches = remember { mutableStateMapOf<Long, LayoutCoordinates>() }
+    val replyCenter = replyLineCenter()
+    val hasReplies = post.subPostCount > 0 && post.subPosts.isNotEmpty()
     BlockableContent(
         block = item.block,
         tip = { reason, onShow ->
@@ -213,7 +246,7 @@ fun ThreadFloor(
             if (style == SubPostStyle.Timeline) {
                 Canvas(modifier = Modifier.matchParentSize()) {
                     val x = (GutterStart + Gutter / 2).toPx()
-                    val top = if (startsRule) (FloorAvatarSize / 2 + 10.dp).toPx() else 0f
+                    val top = if (startsRule) (FloorTop + FloorAvatarSize / 2).toPx() else 0f
                     val floor = floorCoordinates
                     // One path, so a branch leaving the rule doesn't paint over it a second time
                     val path = Path().apply {
@@ -222,7 +255,7 @@ fun ThreadFloor(
                         if (floor != null && floor.isAttached) {
                             branches.values.forEach { reply ->
                                 if (reply.isAttached) {
-                                    val y = floor.localPositionOf(reply, Offset.Zero).y + ReplyAvatarCenter.toPx()
+                                    val y = floor.localPositionOf(reply, Offset.Zero).y + replyCenter.toPx()
                                     branch(x, y, (GutterStart + Gutter).toPx(), BranchRadius.toPx())
                                 }
                             }
@@ -241,10 +274,10 @@ fun ThreadFloor(
                 ) {
                     Row {
                         Spacer(modifier = Modifier.width(Gutter))
-                        FloorBody(post, options, isStoreMark, photoViewData, onEvent)
+                        FloorBody(post, options, isStoreMark, photoViewData, onEvent, endsFloor = !hasReplies)
                     }
                 }
-                if (post.subPostCount > 0 && post.subPosts.isNotEmpty()) {
+                if (hasReplies) {
                     // Full width, so only the height moves between the capsule and the replies
                     Box(modifier = Modifier.fillMaxWidth().animateContentSize(Motion.settle())) {
                         when {
@@ -286,7 +319,7 @@ fun ThreadFloor(
                 post = post,
                 onClick = { onEvent(ThreadEvent.OpenUser(post.author.id)) },
                 modifier = Modifier
-                    .padding(start = GutterStart, top = 10.dp)
+                    .padding(start = GutterStart, top = FloorTop)
                     .width(Gutter)
                     .offset {
                         val info = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }
@@ -357,12 +390,14 @@ private fun FloorBody(
     isStoreMark: Boolean,
     photoViewData: (PostContent.Image) -> PhotoViewData?,
     onEvent: (ThreadEvent) -> Unit,
+    endsFloor: Boolean,
 ) {
     val context = LocalContext.current
     val author = post.author
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp)) {
-        // As tall as the avatar beside it, so the name sits level with the avatar's centre
-        Row(modifier = Modifier.height(FloorAvatarSize), verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = FloorTop, bottom = if (endsFloor) FloorBottom else 0.dp)) {
+        // The name's characters start level with the avatar's top, and the body follows close under
+        // them: the avatar marks where the floor starts, the name heads the body
+        Row(verticalAlignment = Alignment.CenterVertically) {
             ProvideTextStyle(
                 MaterialTheme.typography.subtitle1.copy(
                     color = ExtendedTheme.colors.text,
@@ -375,7 +410,9 @@ private fun FloorBody(
                     userLevel = author.level,
                     isLz = author.id == options.threadAuthorId,
                     bawuType = author.bawuName(),
-                    modifier = Modifier.clickable { onEvent(ThreadEvent.OpenUser(author.id)) },
+                    modifier = Modifier
+                        .clickable { onEvent(ThreadEvent.OpenUser(author.id)) }
+                        .trimToCharacters(15.sp),
                 )
             }
         }
@@ -386,27 +423,29 @@ private fun FloorBody(
                 prefixIcon = {
                     Icon(imageVector = Symbols.StarFill, contentDescription = null, modifier = Modifier.size(16.dp))
                 },
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
-        PostBody(content = post.content, photoViewData = photoViewData, fontSize = 16.sp, lineHeight = 27.sp)
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(NameToBody))
+        PostBody(content = post.content, photoViewData = photoViewData, fontSize = 16.sp, lineHeight = 27.sp, trimEdges = true)
+        Spacer(modifier = Modifier.height(BodyToTime))
         Row(verticalAlignment = Alignment.CenterVertically) {
+            val style = MaterialTheme.typography.caption
             Text(
                 text = listOfNotNull(
                     relativeTime(post.time),
                     shownIpLocation(author.ipLocation),
                 ).joinToString(" · "),
-                style = MaterialTheme.typography.caption,
+                style = style,
                 color = ExtendedTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).trimToCharacters(style.fontSize),
             )
             // The button pads its icon; shift it so the icon lines up with the text's right edge
             PostAgreeBtn(
                 hasAgreed = post.agree.agreed,
                 agreeNum = post.agree.count,
                 onClick = { onEvent(ThreadEvent.AgreePost(post.id)) },
-                modifier = Modifier.offset(x = 8.dp),
+                modifier = Modifier.offset(x = 8.dp).overhanging(),
             )
         }
     }
@@ -437,14 +476,16 @@ private fun TimelineSubPosts(
     // rather than taking a row of its own, unless the rules fold that reply away
     val linkRow = replies?.loading == true || replies?.failed == true || remaining > 0
     val collapseOnLast = onCollapse != null && !linkRow && subPosts.lastOrNull()?.let { blocks[it.id] == null } == true
-    Column(modifier = Modifier.padding(top = 6.dp, bottom = 4.dp)) {
+    val endsOnReply = !linkRow && (onCollapse == null || collapseOnLast)
+    // A reply leaves the room between replies under it, as much as ends a floor
+    Column(modifier = Modifier.padding(top = ToReplies)) {
         subPosts.forEach { subPost ->
             key(subPost.id) {
                 DisposableEffect(subPost.id) { onDispose { onGone(subPost.id) } }
                 BlockableContent(
                     block = blocks[subPost.id],
                     tip = { reason, onShow ->
-                        BlockTip(reason = reason, onShow = onShow, boxed = false, modifier = Modifier.padding(start = Gutter, end = 16.dp, bottom = 4.dp))
+                        BlockTip(reason = reason, onShow = onShow, boxed = false, modifier = Modifier.padding(start = Gutter, end = 16.dp, bottom = 12.dp))
                     },
                 ) {
                     Row(modifier = Modifier.onPlaced { onPlaced(subPost.id, it) }) {
@@ -467,58 +508,51 @@ private fun TimelineSubPosts(
                 }
             }
         }
-        if (!linkRow && (onCollapse == null || collapseOnLast)) {
-            Spacer(modifier = Modifier.height(8.dp))
-            return@Column
-        }
+        // The last reply's own bottom space then parts it from the next floor, as wide as between floors
+        if (endsOnReply) return@Column
+        val showMore = { onEvent(ThreadEvent.ShowMoreSubPosts(post)) }.takeIf { replies?.loading != true && (replies?.failed == true || remaining > 0) }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(start = Gutter, bottom = 12.dp)
+                .padding(bottom = FloorBottom)
                 .fillMaxWidth(),
         ) {
-            when {
-                replies?.loading == true -> SubPostsLink(text = stringResource(id = R.string.text_loading), color = ExtendedTheme.colors.textSecondary, onClick = null)
-                replies?.failed == true -> SubPostsLink(
-                    text = stringResource(id = R.string.sub_posts_load_failed),
-                    color = ExtendedTheme.colors.accent,
-                    onClick = { onEvent(ThreadEvent.ShowMoreSubPosts(post)) },
-                )
-                remaining > 0 -> SubPostsLink(
-                    text = pluralStringResource(id = R.plurals.show_more_sub_posts, count = remaining, remaining),
-                    color = ExtendedTheme.colors.accent,
-                    onClick = { onEvent(ThreadEvent.ShowMoreSubPosts(post)) },
-                )
+            // The whole row up to 收起 opens more, not only its words
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Gutter)
+                    .then(if (showMore != null) Modifier.linkPress(showMore) else Modifier),
+            ) {
+                when {
+                    replies?.loading == true -> SubPostsLink(text = stringResource(id = R.string.text_loading), color = ExtendedTheme.colors.textSecondary)
+                    replies?.failed == true -> SubPostsLink(text = stringResource(id = R.string.sub_posts_load_failed), color = ExtendedTheme.colors.accent)
+                    remaining > 0 -> SubPostsLink(
+                        text = pluralStringResource(id = R.plurals.show_more_sub_posts, count = remaining, remaining),
+                        color = ExtendedTheme.colors.accent,
+                    )
+                }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            if (onCollapse != null) CollapseLink(onCollapse)
+            if (onCollapse != null) CollapseLink(onCollapse, modifier = Modifier.padding(start = 12.dp))
         }
     }
 }
 
 /** The link that folds a floor's replies back into their capsule. */
 @Composable
-private fun CollapseLink(onClick: () -> Unit) {
+private fun CollapseLink(onClick: () -> Unit, modifier: Modifier = Modifier) {
     SubPostsLink(
         text = stringResource(id = R.string.button_show_fewer_sub_posts),
         color = ExtendedTheme.colors.textSecondary,
         weight = FontWeight.Normal,
-        onClick = onClick,
+        modifier = modifier.linkPress(onClick),
     )
 }
 
-/** A link under a floor's replies, in the row lined up with their avatars. */
+/** A link's words under a floor's replies, in the row lined up with their avatars. */
 @Composable
-private fun SubPostsLink(text: String, color: Color, onClick: (() -> Unit)?, weight: FontWeight = FontWeight.SemiBold) {
-    Text(
-        text = text,
-        style = TextStyles.caption,
-        fontWeight = weight,
-        color = color,
-        modifier = Modifier
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 4.dp),
-    )
+private fun SubPostsLink(text: String, color: Color, modifier: Modifier = Modifier, weight: FontWeight = FontWeight.SemiBold) {
+    Text(text = text, style = TextStyles.caption, fontWeight = weight, color = color, modifier = modifier.trimToCharacters(TextStyles.caption.fontSize))
 }
 
 /**
@@ -538,7 +572,7 @@ private fun SubPostsCapsule(item: PostItem, opensInPlace: Boolean, onClick: () -
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
-            .padding(start = Gutter, top = 2.dp, bottom = 14.dp)
+            .padding(start = Gutter, top = ToReplies, bottom = FloorBottom)
             .pressScale(interaction)
             .height(CapsuleHeight)
             .clip(SmoothCornerShape.Capsule)
@@ -597,13 +631,13 @@ private fun ClassicSubPosts(
     val labels = postMenuLabels()
     val colors = ExtendedTheme.colors
     Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
-            .padding(start = Gutter, top = 2.dp, bottom = 14.dp)
+            .padding(start = Gutter, top = ToReplies, bottom = FloorBottom)
             .fillMaxWidth()
             .clip(ClassicBlockShape)
             .background(if (colors.isNightMode) Color.White.copy(alpha = 0.05f) else colors.accent.copy(alpha = 0.06f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(12.dp),
     ) {
         post.subPosts.forEach { subPost ->
             BlockableContent(
@@ -625,7 +659,10 @@ private fun ClassicSubPosts(
                 style = TextStyles.caption,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.accent,
-                modifier = Modifier.clickable { onEvent(ThreadEvent.OpenSubPosts(post, subPostId = 0)) },
+                // The block's whole width opens them, not only the words
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onEvent(ThreadEvent.OpenSubPosts(post, subPostId = 0)) },
             )
         }
     }
@@ -708,21 +745,25 @@ fun SubPostBranch(
     last: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    Row(modifier = modifier.height(IntrinsicSize.Min)) {
-        Canvas(modifier = Modifier.width(Gutter).fillMaxSize()) {
-            rule ?: return@Canvas
+    val replyCenter = replyLineCenter()
+    // Drawn behind the row rather than as a part of it, so the row is as tall as the reply
+    Row(
+        modifier = modifier.drawBehind {
+            rule ?: return@drawBehind
             val x = Gutter.toPx() / 2
-            val y = ReplyAvatarCenter.toPx()
+            val y = replyCenter.toPx()
             val r = BranchRadius.toPx()
             val path = Path().apply {
                 if (rail) {
                     moveTo(x, 0f)
                     lineTo(x, if (last) y - r else size.height)
                 }
-                branch(x, y, size.width, r)
+                branch(x, y, Gutter.toPx(), r)
             }
             drawPath(path, rule, style = Stroke(RuleWidth.toPx()))
-        }
+        },
+    ) {
+        Spacer(modifier = Modifier.width(Gutter))
         content()
     }
 }
@@ -753,14 +794,15 @@ fun SubPostLine(
         if (imageLinks) emptyList() else subPost.content.filterIsInstance<PostContent.Image>()
     }
     Box(modifier = modifier.fillMaxWidth().longPressMenu(items = menuItems, onClick = onClick)) {
-        Column(modifier = Modifier.padding(bottom = 12.dp)) {
+        Column(modifier = Modifier.padding(bottom = ReplyGap)) {
             Row(verticalAlignment = Alignment.Top) {
+                val center = replyLineCenter()
                 Avatar(
                     data = StringUtil.getAvatarUrl(subPost.author.portrait),
                     size = SubPostAvatarSize,
                     contentDescription = null,
-                    // Centred on the first line
-                    modifier = Modifier.padding(top = ReplyAvatarCenter - SubPostAvatarSize / 2),
+                    // Centred on the first line, and taller than it without parting the replies
+                    modifier = Modifier.overhanging(center),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 FoldingReplyText(
@@ -783,14 +825,14 @@ fun SubPostLine(
                     image = image,
                     photoViewData = photoViewData(image),
                     size = Modifier
-                        .padding(start = SubPostAvatarSize + 8.dp, top = 6.dp)
+                        .padding(start = SubPostAvatarSize + 8.dp, top = 8.dp)
                         .fillMaxWidth(ReplyImageWidthFraction)
                         .wrapContentWidth(Alignment.Start)
                         .heightIn(max = ReplyImageMaxHeight),
                 )
             }
             Row(
-                modifier = Modifier.padding(start = SubPostAvatarSize + 8.dp, top = 3.dp),
+                modifier = Modifier.padding(start = SubPostAvatarSize + 8.dp, top = ReplyToTime),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -800,7 +842,7 @@ fun SubPostLine(
                     ).joinToString(" · "),
                     style = TextStyles.footnote,
                     color = colors.textSecondary,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).trimToCharacters(TextStyles.footnote.fontSize),
                 )
                 if (onAgree != null) {
                     // The button pads its icon; shift it so the icon lines up with the text's right edge
@@ -808,7 +850,7 @@ fun SubPostLine(
                         hasAgreed = subPost.agree.agreed,
                         agreeNum = subPost.agree.count,
                         onClick = onAgree,
-                        modifier = Modifier.offset(x = 8.dp),
+                        modifier = Modifier.offset(x = 8.dp).overhanging(),
                     )
                 } else if (subPost.agree.count > 0) {
                     Icon(
@@ -850,9 +892,9 @@ private fun FoldingReplyText(text: AnnotatedString, fold: Boolean, key: Long, mo
         buildAnnotatedString {
             append(text.subSequence(0, end))
             append("…")
-            withLink(LinkAnnotation.Clickable("expand") { unfolded = true }) {
-                withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) { append(more) }
-            }
+            // Styled as the link, which is otherwise underlined
+            val style = TextLinkStyles(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold))
+            withLink(LinkAnnotation.Clickable("expand", style) { unfolded = true }) { append(more) }
         }
     } ?: text
     val moreWidth = with(LocalDensity.current) { (TextStyles.reply.fontSize * (more.length + 1.5f)).toPx() }
@@ -874,7 +916,7 @@ private fun FoldingReplyText(text: AnnotatedString, fold: Boolean, key: Long, mo
             }
         },
         inlineContent = mapOf("Lz" to lzChip()),
-        modifier = modifier,
+        modifier = modifier.trimToCharacters(TextStyles.reply.fontSize),
     )
 }
 
@@ -1078,3 +1120,35 @@ internal fun replyPhotoViewData(context: Context, post: Post, image: PostContent
         ),
     ),
 )
+
+/** Where the middle of a reply's first line is, from the top of its characters. */
+@Composable
+private fun replyLineCenter(): Dp = with(LocalDensity.current) { (TextStyles.reply.fontSize.toPx() / 2).toDp() }
+
+/**
+ * Lays this out as no height at all, centred where it would be, or with its middle [at] a height
+ * from the top: taller than the things beside it, it doesn't push apart what is above and below.
+ */
+private fun Modifier.overhanging(at: Dp? = null): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = 0))
+    layout(placeable.width, 0) {
+        placeable.place(0, (at?.roundToPx() ?: 0) - placeable.height / 2)
+    }
+}
+
+/** How far a link's press shows past its words, all round. */
+private val LinkPressPad = 8.dp
+
+/**
+ * Makes this a link that can be pressed anywhere within [LinkPressPad] of its words, and shows the
+ * press there, while it takes only the room of its words: the space around it stays as set.
+ */
+private fun Modifier.linkPress(onClick: () -> Unit): Modifier = this
+    .layout { measurable, constraints ->
+        val pad = LinkPressPad.roundToPx()
+        val placeable = measurable.measure(constraints.offset(2 * pad, 2 * pad))
+        layout(placeable.width - 2 * pad, placeable.height - 2 * pad) { placeable.place(-pad, -pad) }
+    }
+    .clip(Corners.sm)
+    .clickable(onClick = onClick)
+    .padding(LinkPressPad)

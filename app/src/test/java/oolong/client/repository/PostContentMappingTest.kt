@@ -149,4 +149,11 @@ class PostContentMappingTest {
         val link = (content.single() as PostContent.Text).spans.single() as TextSpan.Link
         assertEquals("example.com", link.actualHost)
     }
+
+    @Test
+    fun `a bare emoticon id is the first emoticon`() {
+        val content = map(PbContent(type = 2, text = "image_emoticon", c = "呵呵"))
+
+        assertEquals(TextSpan.Emoticon(id = "image_emoticon1", name = "呵呵"), (content.single() as PostContent.Text).spans.single())
+    }
 }

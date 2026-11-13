@@ -7,8 +7,6 @@ import oolong.client.api.models.protos.ThreadInfo
 import oolong.client.api.models.protos.User
 import oolong.client.api.models.protos.forumRuleDetail.ForumRuleDetailResponseData
 import oolong.client.api.models.protos.frsPage.FrsPageResponseData
-import oolong.client.api.models.protos.plainText
-import oolong.client.api.models.protos.renders
 import oolong.client.arch.IoDispatcher
 import oolong.client.arch.Page
 import oolong.client.model.ForumDetail
@@ -20,6 +18,7 @@ import oolong.client.model.ForumSort
 import oolong.client.model.ForumTab
 import oolong.client.model.GoodClass
 import oolong.client.model.ThreadSummary
+import oolong.client.model.plainText
 import oolong.core.network.forum.ForumRemoteDataSource
 import oolong.core.network.forum.LikeRemoteDataSource
 import oolong.core.network.sign.SignRemoteDataSource
@@ -68,7 +67,7 @@ class ForumRepository @Inject constructor(
     private val emoticons: EmoticonRegistry,
 ) {
     suspend fun forumRuleDetail(forumId: Long): ForumRuleDetail = withContext(io) {
-        remote.forumRuleDetail(forumId).toForumRuleDetail()
+        remote.forumRuleDetail(forumId).toForumRuleDetail(emoticons)
     }
 
     suspend fun forumIntro(forumId: Long): ForumIntro = withContext(io) {
@@ -79,7 +78,7 @@ class ForumRepository @Inject constructor(
             memberCount = info.member_count,
             threadCount = info.thread_count,
             slogan = info.slogan,
-            intro = info.content.plainText,
+            intro = info.content.toPostContent(emoticons).plainText,
         )
     }
 
@@ -247,7 +246,7 @@ private fun FrsPageResponseData.toForumDetail(): ForumDetail? {
 /** The type of the tabs a forum's moderators set up, as nav tabs list them. */
 private const val CUSTOM_TAB_TYPE = 15
 
-private fun ForumRuleDetailResponseData.toForumRuleDetail(): ForumRuleDetail {
+private fun ForumRuleDetailResponseData.toForumRuleDetail(emoticons: EmoticonRegistry): ForumRuleDetail {
     val bazhu = checkNotNull(bazhu)
     return ForumRuleDetail(
         title = title,
@@ -258,6 +257,6 @@ private fun ForumRuleDetailResponseData.toForumRuleDetail(): ForumRuleDetail {
             nameShow = bazhu.name_show,
             portrait = bazhu.portrait,
         ),
-        rules = rules.map { ForumRuleItem(it.title, it.content.renders) }.toImmutableList(),
+        rules = rules.map { ForumRuleItem(it.title, it.content.toPostContent(emoticons)) }.toImmutableList(),
     )
 }

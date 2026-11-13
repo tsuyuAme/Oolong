@@ -67,6 +67,7 @@ import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.utils.EmoticonManager
+import oolong.client.utils.EmoticonUtil
 import oolong.client.utils.EmoticonUtil.emoticonString
 import oolong.client.utils.calcLineHeightPx
 import java.util.regex.Pattern
@@ -168,10 +169,11 @@ fun EmoticonText(
             if (fontPx > 0f) ((sizePx + lineSpacing.toPx()) / fontPx).em else (sizePx + lineSpacing.toPx()).toSp()
         }
     }
-    val emoticonInlineContent =
-        remember(sizePx, density) { EmoticonManager.getEmoticonInlineContent(sizePx * emoticonSize, density) }
+    val emoticonInlineContent = remember(text, sizePx, emoticonSize, density) {
+        EmoticonManager.getEmoticonInlineContent(EmoticonUtil.emoticonIds(text), sizePx * emoticonSize, density)
+    }
     IconText(
-        text.emoticonString,
+        text,
         modifier,
         color,
         fontSize,
@@ -485,7 +487,7 @@ fun HighlightText(
     highlightStyle: TextStyle = style,
 ) {
     HighlightText(
-        text = AnnotatedString(text),
+        text = remember(text) { text.emoticonString },
         modifier = modifier,
         color = color,
         fontSize = fontSize,

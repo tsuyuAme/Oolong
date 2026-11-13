@@ -1,0 +1,46 @@
+{
+  "zh": {
+    "新增": [
+      "楼中楼图片\n楼层下的回复中，图片显示为「查看图片」，点按即可查看；楼中楼页中直接显示图片",
+      "动态与消息页搜索\n搜索栏位于首页顶部时，动态与消息页的顶栏显示搜索按钮",
+      "自动刷新「动态」\n在「浏览」中关闭后，打开应用时显示上次加载的推荐与关注，下拉即可刷新"
+    ],
+    "改进": [
+      "吧规与置顶\n吧规移至「关于本吧」，点按吧名即可打开；置顶帖可收起，收起后只显示第一条与总数",
+      "帖子中的链接\n读屏与键盘可以找到帖子中的链接、@ 与话题",
+      "楼层排版\n同一楼的名字、正文、时间与楼中楼排得更紧凑，楼与楼之间留出更清楚的间隔，与有无楼中楼无关"
+    ],
+    "修复": [
+      "底栏收起后，切换页面或返回时意外展开",
+      "标签较多时，标签栏无法左右滑动",
+      "按住标签栏、分段控件或底栏时，玻璃边缘出现残缺的文字",
+      "帖子内容更新后，点按链接偶尔打开其他链接",
+      "楼中楼的「展开其余」只能点按文字",
+      "打开推荐中的回复时提示主题不存在",
+      "打开网页时切换到后台偶尔闪退",
+      "帖子页中滑动关闭提示条时偶尔闪退"
+    ]
+  },
+  "en": {
+    "New": [
+      "Pictures in replies\nUnder a floor, a reply's pictures show as View image, which opens them; the replies page shows them in place",
+      "Search from Explore and Inbox\nWith search at the top of Home, Explore and Inbox show a search button in their bars",
+      "Refresh “Explore” on open\nTurn it off under Browsing and For you and Following show what was last loaded when the app opens; pull down to refresh"
+    ],
+    "Improved": [
+      "Rules and pinned threads\nA forum's rules are now in About this forum, which its name opens; pinned threads can fold to the first one and their count",
+      "Links in posts\nScreen readers and keyboards can reach the links, mentions and topics in posts",
+      "Floor layout\nA floor's name, text, time and replies sit closer together, and floors are set clearly apart, with or without replies"
+    ],
+    "Fixed": [
+      "The folded bottom bar unfolded when switching tabs or going back",
+      "A row of many tabs couldn't be scrolled sideways",
+      "Holding a tab row, segmented control or the bottom bar showed cut-off text at the glass's edge",
+      "Tapping a link after a post updated occasionally opened another link",
+      "Only the words of “Show N more” under replies could be tapped",
+      "Opening a reply from For you said the thread didn't exist",
+      "The app occasionally crashed when sent to the background with a web page open",
+      "Swiping away a notice in a thread occasionally crashed the app"
+    ]
+  }
+}

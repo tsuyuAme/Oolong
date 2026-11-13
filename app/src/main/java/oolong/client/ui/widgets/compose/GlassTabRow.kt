@@ -122,9 +122,10 @@ private val LocalTabLens = staticCompositionLocalOf { false }
  * pages as they are swiped.
  *
  * Pressing a tab lifts the bubble off as clear glass, a little larger than the tab, as a switch's
- * knob does, and carries it to that tab. With [onSelect], the lens then follows the finger across
- * the tabs, scrolling the row near its ends, and picks the tab it is let go on; without, a drag
- * scrolls the row and puts the lens back.
+ * knob does, and carries it to that tab. With [onSelect], a drag then carries the lens across the
+ * tabs, scrolling the row near its ends, and picks the tab it is let go on. In a row that scrolls,
+ * only a drag from the chosen tab carries the lens, as a segmented control's thumb is dragged;
+ * any other drag, and every drag without [onSelect], scrolls the row and puts the lens back.
  *
  * Tabs are laid out at the capsule's inner height; [GlassTab]s fill it. With [fill], the capsule
  * takes the whole width and the tabs share it equally, for a few tabs that fit, as a profile's.
@@ -188,9 +189,11 @@ fun GlassTabRow(
             modifier = Modifier
                 .fillMaxHeight()
                 .then(if (fill) Modifier.fillMaxWidth() else Modifier)
-                .floatingGlass(TabCapsule, barButton = false)
+                // What the lens sees, with what is behind the capsule: the capsule, its tabs and the
+                // bubble, which fades from under it
+                .floatingGlass(TabCapsule, barButton = false, lensTarget = true)
                 .clip(TabCapsule)
-                // What the lens sees: the tabs and the bubble, which fades from under it
+                // The same outside floating chrome, without what is behind
                 .hazeSource(glassState),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -223,6 +226,9 @@ fun GlassTabRow(
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                                         val index = spans.indexAt(down.position.x) ?: return@awaitEachGesture
+                                        // In a row that scrolls, a drag from another tab is the row's
+                                        val carriesLens = currentOnSelect != null &&
+                                            (scroll.maxValue == 0 || index == selectedTabIndexState)
                                         val from = position()
                                         lensActive = true
                                         holding = true
@@ -249,9 +255,9 @@ fun GlassTabRow(
                                             if (change.isConsumed) break
                                             val moved = change.position - down.position
                                             if (!dragging && (abs(moved.x) > touchSlop || abs(moved.y) > touchSlop)) {
-                                                // Up and down is the page's to scroll; with nothing to pick from a
-                                                // drag, the row keeps its own scrolling
-                                                if (abs(moved.y) > abs(moved.x) || currentOnSelect == null) break
+                                                // Up and down is the page's to scroll; a drag that doesn't carry
+                                                // the lens is the row's own scrolling
+                                                if (abs(moved.y) > abs(moved.x) || !carriesLens) break
                                                 dragging = true
                                             }
                                             if (dragging) {
@@ -323,7 +329,7 @@ fun GlassTabRow(
                             layout(w, h) { placeable.place(0, 0) }
                         }
                         // Bent as the navigation bar's lens is, for its size
-                        .controlLens(glassState, TabCapsule, held, lensOptics)
+                        .chromeControlLens(glassState, TabCapsule, held, lensOptics)
                 )
             }
         }

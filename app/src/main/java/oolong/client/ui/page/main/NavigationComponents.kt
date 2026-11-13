@@ -104,6 +104,7 @@ import oolong.client.ui.widgets.compose.OwnAvatar
 import oolong.client.ui.widgets.compose.classicBarGlass
 import oolong.client.ui.widgets.compose.floatingGlass
 import oolong.client.ui.widgets.compose.glassLens
+import oolong.client.ui.widgets.compose.liquidLensOptics
 import oolong.client.ui.widgets.compose.longPressMenu
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -540,6 +541,7 @@ fun FloatingNavBar(
                 val lensScale = lerpFloat(1f, LensScale, press.value)
                 val lensWidth = itemWidth * lensScale
                 val lensHeight = itemHeight * lensScale
+                val lensOptics = remember(itemHeight) { liquidLensOptics(itemHeight * LensScale) }
                 Box(modifier = Modifier.matchParentSize()) {
                     Box(
                         modifier = Modifier
@@ -555,7 +557,7 @@ fun FloatingNavBar(
                             }
                             .size(width = lensWidth, height = lensHeight)
                             .graphicsLayer { alpha = press.value }
-                            .glassLens(NavPillShape)
+                            .glassLens(NavPillShape, lensOptics)
                     )
                 }
             }

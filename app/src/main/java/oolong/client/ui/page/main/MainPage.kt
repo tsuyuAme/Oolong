@@ -134,10 +134,10 @@ fun MainPage(
     val searchAtTop = searchKeptAtTop || !showBottomNavigation
 
     ProvideNavigator(navigator = navigator) {
-        // The bar folds to its icons as a tab's content goes on, and unfolds as it comes back or
-        // another tab opens
+        // The bar folds to its icons as a tab's content goes on and unfolds as it comes back; it
+        // stays as it is when another tab opens or the user comes back from another page
         val page = rememberPageScrollState()
-        val navBarCompact = rememberScrollProgress(away = 24.dp, toggle = true, resetKey = pagerState.currentPage, page = page)
+        val navBarCompact = rememberScrollProgress(away = 24.dp, toggle = true, page = page)
         GlassScaffold(
             backgroundColor = Color.Transparent,
             pageScroll = page,

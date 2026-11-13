@@ -37,7 +37,8 @@ import oolong.client.model.ForumRuleItem
 import oolong.client.model.ForumSort
 import oolong.client.model.ForumTab
 import oolong.client.model.GoodClass
-import oolong.client.ui.common.TextContentRender
+import oolong.client.model.PostContent
+import oolong.client.model.TextSpan
 import oolong.core.network.forum.ForumRemoteDataSource
 import oolong.core.network.forum.LikeForumResponse
 import oolong.core.network.forum.LikeRemoteDataSource
@@ -228,7 +229,7 @@ class ForumRepositoryTest {
     }
 
     @Test
-    fun `merges consecutive text contents of a rule`() = runTest {
+    fun `keeps consecutive text pieces of a rule in one block`() = runTest {
         val rule = ForumRule(
             title = "规则",
             content = listOf(PbContent(type = 0, text = "第一句"), PbContent(type = 0, text = "第二句")),
@@ -236,7 +237,10 @@ class ForumRepositoryTest {
         coEvery { remote.forumRuleDetail(FORUM_ID) } returns forumRuleData(rules = listOf(rule))
 
         val detail = repository.forumRuleDetail(FORUM_ID)
-        assertEquals(persistentListOf(TextContentRender("第一句第二句")), detail.rules.single().content)
+        assertEquals(
+            persistentListOf(PostContent.Text(persistentListOf(TextSpan.Plain("第一句"), TextSpan.Plain("第二句")))),
+            detail.rules.single().content,
+        )
     }
 
     @Test
@@ -274,6 +278,6 @@ internal fun forumRuleDetail() = ForumRuleDetail(
     preface = "请遵守以下规定。",
     author = ForumRuleAuthor(name = "bazhu", nameShow = "吧主", portrait = "tb.1.abc"),
     rules = persistentListOf(
-        ForumRuleItem("一、发帖规范", persistentListOf(TextContentRender("标题需清楚描述帖子内容。"))),
+        ForumRuleItem("一、发帖规范", persistentListOf(PostContent.Text(persistentListOf(TextSpan.Plain("标题需清楚描述帖子内容。"))))),
     ),
 )
