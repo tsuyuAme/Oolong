@@ -494,6 +494,8 @@
     <string name="title_not_logged_in">未登录</string>
     <string name="message_not_logged_in">登录后才能查看</string>
     <string name="text_all">全部</string>
+    <string name="text_sort_asc">正序</string>
+    <string name="text_sort_desc">倒序</string>
     <string name="tip_reply_thread">评论一番</string>
     <string name="btn_load_previous">查看上一页</string>
     <string name="desc_video">视频</string>

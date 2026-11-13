@@ -246,29 +246,48 @@ internal fun ThreadHeader(
     modifier: Modifier = Modifier,
 ) {
     val docking = rememberScrollProgress(ReplyFilter)
+    val newestFirst = state.query.sort == ThreadSort.NewestFirst
     Container(modifier = modifier) {
         Row(
             modifier = Modifier
                 .background(ExtendedTheme.colors.background)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.title_thread_header, "${(state.thread?.replyCount ?: 1) - 1}"),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = ExtendedTheme.colors.text,
-            )
-            Spacer(modifier = Modifier.weight(1f))
+            // 左侧：全部 / 只看楼主（缩小，降低误触）
             SegmentedControl(
                 options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
                 selected = if (state.query.seeLz) 1 else 0,
                 onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
+                compact = true,
                 modifier = Modifier
                     .matchedGeometryAnchor(ReplyFilter)
                     .graphicsLayer { alpha = 1f - docking.fraction(0f..FilterCrossfade) }
-                    // Both options as wide as the wider one
                     .width(IntrinsicSize.Max),
+            )
+            Text(
+                text = stringResource(R.string.title_thread_header, "${(state.thread?.replyCount ?: 1) - 1}"),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = ExtendedTheme.colors.text,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                maxLines = 1,
+            )
+            // 右侧：正序 / 倒序（与左侧同尺寸）
+            SegmentedControl(
+                options = persistentListOf(
+                    stringResource(R.string.text_sort_asc),
+                    stringResource(R.string.text_sort_desc),
+                ),
+                selected = if (newestFirst) 1 else 0,
+                onSelect = { index ->
+                    val wantNewest = index == 1
+                    if (wantNewest != newestFirst) onEvent(ThreadEvent.ToggleSort)
+                },
+                compact = true,
+                modifier = Modifier.width(IntrinsicSize.Max),
             )
         }
     }
@@ -375,6 +394,7 @@ internal fun ThreadFilter(seeLz: Boolean, onEvent: (ThreadEvent) -> Unit) {
             options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
             selected = selected,
             onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
+            compact = true,
             modifier = Modifier
                 .matchedGeometry(ReplyFilter, docking)
                 .graphicsLayer { alpha = docking.fraction(0f..FilterCrossfade) }
@@ -398,8 +418,8 @@ internal fun ThreadFilter(seeLz: Boolean, onEvent: (ThreadEvent) -> Unit) {
             ) {
                 Text(
                     text = stringResource(label),
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 10.dp),
+                    fontSize = 12.sp,
                     fontWeight = if (index == selected) FontWeight.SemiBold else FontWeight.Normal,
                 )
             }

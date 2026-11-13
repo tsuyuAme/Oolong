@@ -70,8 +70,13 @@ fun SegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     trackColor: Color = ExtendedTheme.colors.chip,
+    /** Smaller track and labels — for dense toolbars (e.g. thread header). */
+    compact: Boolean = false,
 ) {
     val colors = ExtendedTheme.colors
+    val minHeight = if (compact) 26.dp else 32.dp
+    val optionPadding = if (compact) 6.dp else 8.dp
+    val labelStyle = if (compact) TextStyles.caption else TextStyles.label
     // The page's own colour; on the translucent theme, which has none, that of an opaque surface
     val pillColor = if (colors.background.alpha < 1f) colors.sheet else colors.background
     // Where the pill is, in options; follows the finger while held
@@ -103,10 +108,10 @@ fun SegmentedControl(
             modifier = Modifier
                 .onSizeChanged { trackSize = it }
                 .clip(Corners.full)
-                .background(trackColor)
-                // What the held pill sees: the labels, and the pill as it fades. The track shows
-                // through the glass as it is
+                // What the held pill sees: the track, its labels, and the pill as it fades, so what
+                // it bends from past its edge is the track rather than loose labels
                 .hazeSource(glassState)
+                .background(trackColor)
                 .drawBehind {
                     val width = (size.width - inset * 2) / count
                     val height = size.height - inset * 2
@@ -167,7 +172,7 @@ fun SegmentedControl(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 32.dp)
+                        .heightIn(min = minHeight)
                         .semantics(mergeDescendants = true) {
                             role = Role.Tab
                             this.selected = chosen
@@ -176,11 +181,11 @@ fun SegmentedControl(
                                 true
                             }
                         }
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = optionPadding),
                 ) {
                     Text(
                         text = option,
-                        style = TextStyles.label,
+                        style = labelStyle,
                         fontWeight = if (shown) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (shown) colors.text else colors.textSecondary,
                         maxLines = 1,
