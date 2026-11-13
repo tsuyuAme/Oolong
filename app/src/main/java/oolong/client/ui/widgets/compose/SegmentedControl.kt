@@ -82,8 +82,11 @@ fun SegmentedControl(
     // Where the pill is, in options; follows the finger while held
     val position = remember { Animatable(selected.toFloat(), Motion.ProgressThreshold) }
     var holding by remember { mutableStateOf(false) }
-    LaunchedEffect(selected, holding) {
-        if (!holding) position.animateTo(selected.toFloat(), Motion.snap())
+    // Always follow [selected] when not mid-drag; clear stuck hold after parent reloads
+    // (e.g. thread list refresh on see-lz toggle) so the control cannot stay unresponsive.
+    LaunchedEffect(selected) {
+        holding = false
+        position.snapTo(selected.toFloat())
     }
     val held by animateFloatAsState(
         targetValue = if (holding) 1f else 0f,
@@ -123,43 +126,59 @@ fun SegmentedControl(
                         cornerRadius = CornerRadius(height / 2),
                     )
                 }
-                .pointerInput(count) {
-                    val width = (size.width - inset * 2) / count
-                    fun optionAt(x: Float) = ((x - inset) / width - 0.5f).coerceIn(0f, (count - 1).toFloat())
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        holding = true
-                        scope.launch { position.animateTo(optionAt(down.position.x).roundToInt().toFloat(), Motion.snap()) }
-                        var dragging = false
-                        var last = position.value.roundToInt()
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) {
-                                val target = if (dragging) position.value.roundToInt() else optionAt(change.position.x).roundToInt()
-                                holding = false
-                                if (target != currentSelected) currentOnSelect(target)
-                                scope.launch { position.animateTo(target.toFloat(), Motion.snap()) }
-                                return@awaitEachGesture
-                            }
-                            if (change.isConsumed) break
-                            val moved = change.position - down.position
-                            if (!dragging && (abs(moved.x) > touchSlop || abs(moved.y) > touchSlop)) {
-                                // Up and down is the page's to scroll
-                                if (abs(moved.y) > abs(moved.x)) break
-                                dragging = true
-                            }
-                            if (dragging) {
-                                change.consume()
-                                val at = optionAt(change.position.x)
-                                scope.launch { position.snapTo(at) }
-                                if (at.roundToInt() != last) {
-                                    last = at.roundToInt()
-                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                .pointerInput(count, trackSize.width, trackSize.height) {
+                    // Recompute width on every gesture — size at modifier install time is often 0
+                    // or stale after layout / see-lz list reload, which made taps pick the wrong
+                    // (or same) option and look "stuck" until another control forced a restart.
+                    fun optionAt(x: Float): Float {
+                        val w = (size.width - inset * 2) / count
+                        if (w <= 0f) return currentSelected.toFloat()
+                        return ((x - inset) / w - 0.5f).coerceIn(0f, (count - 1).toFloat())
+                    }
+                    try {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            holding = true
+                            val downOpt = optionAt(down.position.x).roundToInt()
+                            scope.launch { position.snapTo(downOpt.toFloat()) }
+                            var dragging = false
+                            var last = downOpt
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!change.pressed) {
+                                        val target = if (dragging) {
+                                            position.value.roundToInt()
+                                        } else {
+                                            optionAt(change.position.x).roundToInt()
+                                        }
+                                        if (target != currentSelected) currentOnSelect(target)
+                                        scope.launch { position.animateTo(target.toFloat(), Motion.snap()) }
+                                        return@awaitEachGesture
+                                    }
+                                    if (change.isConsumed) break
+                                    val moved = change.position - down.position
+                                    if (!dragging && (abs(moved.x) > touchSlop || abs(moved.y) > touchSlop)) {
+                                        // Up and down is the page's to scroll
+                                        if (abs(moved.y) > abs(moved.x)) break
+                                        dragging = true
+                                    }
+                                    if (dragging) {
+                                        change.consume()
+                                        val at = optionAt(change.position.x)
+                                        scope.launch { position.snapTo(at) }
+                                        if (at.roundToInt() != last) {
+                                            last = at.roundToInt()
+                                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                        }
+                                    }
                                 }
+                            } finally {
+                                holding = false
                             }
                         }
-                        // Taken by a scroll, or let go elsewhere: the pill goes back
+                    } finally {
                         holding = false
                     }
                 }

@@ -254,28 +254,27 @@ internal fun ThreadHeader(
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // 左侧：全部 / 只看楼主（缩小，降低误触）
+            // 回复数在前，筛选紧随其后（与旧版顺序一致）
+            Text(
+                text = stringResource(R.string.title_thread_header, "${(state.thread?.replyCount ?: 1) - 1}"),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = ExtendedTheme.colors.text,
+                maxLines = 1,
+            )
             SegmentedControl(
                 options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
                 selected = if (state.query.seeLz) 1 else 0,
                 onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
                 compact = true,
                 modifier = Modifier
+                    .padding(start = 8.dp)
                     .matchedGeometryAnchor(ReplyFilter)
                     .graphicsLayer { alpha = 1f - docking.fraction(0f..FilterCrossfade) }
                     .width(IntrinsicSize.Max),
             )
-            Text(
-                text = stringResource(R.string.title_thread_header, "${(state.thread?.replyCount ?: 1) - 1}"),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = ExtendedTheme.colors.text,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                maxLines = 1,
-            )
-            // 右侧：正序 / 倒序（与左侧同尺寸）
+            Spacer(modifier = Modifier.weight(1f))
+            // 右侧：正序 / 倒序（与筛选同尺寸）
             SegmentedControl(
                 options = persistentListOf(
                     stringResource(R.string.text_sort_asc),
