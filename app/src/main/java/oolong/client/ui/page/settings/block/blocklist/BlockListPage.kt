@@ -32,7 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
@@ -57,6 +57,7 @@ import oolong.client.model.tests
 import oolong.client.ui.common.relativeTime
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Radius
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Spacing
@@ -78,6 +79,7 @@ import oolong.client.ui.widgets.compose.IconButton
 import oolong.client.ui.widgets.compose.MyLazyColumn
 import oolong.client.ui.widgets.compose.SegmentedControl
 import oolong.client.ui.widgets.compose.TextButton
+import oolong.client.ui.widgets.compose.maskTo
 import oolong.client.ui.widgets.compose.rememberDialogState
 
 @Composable
@@ -193,7 +195,8 @@ fun BlockListScreen(
                     index == shown.lastIndex -> SmoothCornerShape(Radius.md, top = false)
                     else -> RectangleShape
                 }
-                Box(modifier = Modifier.padding(horizontal = Spacing.md).clip(shape)) {
+                // The first and last rows' rounded ends are masked: a clip to them is jagged on some GPUs
+                Box(modifier = Modifier.padding(horizontal = Spacing.md).then(if (shape == RectangleShape) Modifier.clipToBounds() else Modifier.maskTo(shape))) {
                     SwipeToDismiss(
                         state = dismissState,
                         directions = setOf(DismissDirection.EndToStart),
@@ -225,8 +228,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .fillMaxWidth()
             .heightIn(min = 40.dp)
-            .clip(Corners.sm)
-            .background(colors.inset)
+            .background(colors.inset, Corners.sm)
             .padding(horizontal = Spacing.sm),
     ) {
         Icon(Symbols.Search, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
@@ -264,8 +266,7 @@ private fun StaleBanner(count: Int, onClean: () -> Unit) {
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .clip(Corners.md)
-            .background(colors.chip)
+            .background(colors.chip, Corners.md)
             .padding(start = Spacing.md, end = Spacing.xs),
     ) {
         Text(
@@ -280,8 +281,7 @@ private fun StaleBanner(count: Int, onClean: () -> Unit) {
             style = TextStyles.label,
             color = colors.accent,
             modifier = Modifier
-                .clip(Corners.full)
-                .clickable(onClick = onClean)
+                .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), onClick = onClean)
                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         )
     }
@@ -314,8 +314,7 @@ private fun RuleRow(rule: BlockRule, now: Long, onClick: () -> Unit) {
             modifier = Modifier
                 .alpha(if (rule.enabled) 1f else 0.45f)
                 .size(30.dp)
-                .clip(Corners.sm)
-                .background(colors.card),
+                .background(colors.card, Corners.sm),
         ) {
             Icon(rule.icon, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(17.dp))
         }
@@ -334,7 +333,7 @@ private fun RuleRow(rule: BlockRule, now: Long, onClick: () -> Unit) {
                         text = stringResource(id = R.string.rule_exception),
                         style = TextStyles.micro,
                         color = colors.textSecondary,
-                        modifier = Modifier.clip(Corners.xs).background(colors.card).padding(horizontal = 5.dp, vertical = 1.dp),
+                        modifier = Modifier.background(colors.card, Corners.xs).padding(horizontal = 5.dp, vertical = 1.dp),
                     )
                 }
             }

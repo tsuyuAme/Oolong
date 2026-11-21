@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Icon
@@ -29,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
@@ -45,7 +45,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastForEachIndexed
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -60,6 +60,7 @@ import oolong.client.ui.common.rememberTextLinkActions
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.PressFeedback
+import oolong.client.ui.common.theme.compose.Radius
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.windowsizeclass.LocalWindowSizeClass
@@ -103,9 +104,8 @@ fun QuotePostCard(
             thread = thread,
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(SmoothCornerShape(6.dp))
-                .background(ExtendedTheme.colors.card)
-                .clickable {
+                .background(ExtendedTheme.colors.card, SmoothCornerShape(6.dp))
+                .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) {
                     onThreadClick(thread)
                 },
             pictures = pictures,
@@ -274,9 +274,8 @@ fun SearchThreadItem(
                         onThreadClick = onMainPostClick,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(SmoothCornerShape(6.dp))
-                            .background(ExtendedTheme.colors.inset)
-                            .clickable {
+                            .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) {
                                 onQuotePostClick(quoted)
                             },
                         pictures = item.pictures,
@@ -288,9 +287,8 @@ fun SearchThreadItem(
                         thread = thread,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(SmoothCornerShape(6.dp))
-                            .background(ExtendedTheme.colors.inset)
-                            .clickable {
+                            .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) {
                                 onMainPostClick(thread)
                             },
                         pictures = item.pictures,
@@ -358,17 +356,20 @@ fun SearchMedia(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(mediaWidthFraction)
-                        .aspectRatio(mediaAspectRatio)
-                        .clip(Corners.sm),
+                        .aspectRatio(mediaAspectRatio),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    showMedias.fastForEach { pic ->
+                    // One rounded shape across the row: its outer corners only
+                    showMedias.fastForEachIndexed { index, pic ->
+                        val start = CornerSize(if (index == 0) Radius.sm else 0.dp)
+                        val end = CornerSize(if (index == showMedias.lastIndex) Radius.sm else 0.dp)
                         NetworkImage(
                             imageUri = pic,
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .weight(1f),
+                            shape = remember(start, end) { SmoothCornerShape(start, end, end, start) },
                             contentScale = ContentScale.Crop
                         )
                     }
@@ -450,10 +451,9 @@ fun SearchBox(
                 ) {
                     Box(
                         modifier = Modifier
-                            .clip(Corners.full)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = PressFeedback.Overlay,
+                                indication = PressFeedback.overlay(Corners.full),
                                 role = Role.Button
                             ) { onKeywordChange("") },
                         contentAlignment = Alignment.Center,
@@ -468,10 +468,9 @@ fun SearchBox(
             AnimatedVisibility(visible = isKeywordNotEmpty && submitButton) {
                 Box(
                     modifier = Modifier
-                        .clip(Corners.full)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = PressFeedback.Overlay,
+                            indication = PressFeedback.overlay(Corners.full),
                             role = Role.Button
                         ) { onKeywordSubmit(keyword) },
                     contentAlignment = Alignment.Center,

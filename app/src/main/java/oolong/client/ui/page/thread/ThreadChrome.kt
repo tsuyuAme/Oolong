@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +36,7 @@ import oolong.client.model.ForumSummary
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.Avatar
@@ -65,7 +65,6 @@ internal fun ThreadTopBar(
                     modifier = Modifier
                         .height(GlassTopBarItemHeight)
                         .floatingGlass(ForumCapsule)
-                        .clip(ForumCapsule)
                         // The glass answers the press
                         .clickable(interactionSource = null, indication = null) { onEvent(ThreadEvent.OpenForum) }
                         .padding(start = 10.dp, end = 6.dp),
@@ -129,8 +128,7 @@ private fun MenuButton(open: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(40.dp)
-            .clip(CapsuleShape)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(CapsuleShape), onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         val tint = ExtendedTheme.colors.textSecondary
@@ -164,8 +162,7 @@ private fun ThreadAgreeButton(agree: Agree, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .height(40.dp)
-            .clip(CapsuleShape)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(CapsuleShape), onClick = onClick)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),

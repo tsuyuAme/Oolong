@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -752,8 +751,7 @@ private fun MenuRow(
             .fillMaxWidth()
             .heightIn(min = ItemHeight)
             .padding(horizontal = 6.dp)
-            .clip(ItemShape)
-            .background(if (highlighted) colors.chip else Color.Transparent)
+            .background(if (highlighted) colors.chip else Color.Transparent, ItemShape)
             // Presses are followed by the menu as a whole, so a finger can slide between items
             .semantics(mergeDescendants = true) {
                 role = Role.Button

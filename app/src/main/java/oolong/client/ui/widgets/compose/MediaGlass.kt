@@ -127,7 +127,6 @@ fun MediaGlassPill(
     Row(
         modifier = modifier
             .mediaGlass(SmoothCornerShape.Capsule, interactionSource = onClick?.let { interaction })
-            .clip(SmoothCornerShape.Capsule)
             .then(
                 if (onClick == null) Modifier
                 else Modifier.clickable(interactionSource = interaction, indication = null, onClickLabel = onClickLabel, role = Role.Button, onClick = onClick),

@@ -28,7 +28,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -197,8 +196,7 @@ fun CrashLogPage(
                     modifier = Modifier
                         .padding(horizontal = Spacing.md, vertical = Spacing.xs)
                         .fillMaxWidth()
-                        .clip(Corners.md)
-                        .background(ExtendedTheme.colors.card)
+                        .background(ExtendedTheme.colors.card, Corners.md)
                         .padding(Spacing.md),
                 ) {
                     // Unwrapped, so each frame of a stack trace keeps to its line

@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -68,6 +67,7 @@ import oolong.client.model.FlatCondition
 import oolong.client.model.flat
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
@@ -179,9 +179,13 @@ fun BlockRuleScreen(
                     .padding(horizontal = Spacing.md)
                     .fillMaxWidth()
                     .heightIn(min = 52.dp)
-                    .clip(Corners.md)
-                    .background(colors.chip)
-                    .toggleable(value = draft.enabled, role = Role.Switch) { checked -> onEdit { it.copy(enabled = checked) } }
+                    .background(colors.chip, Corners.md)
+                    .toggleable(
+                        value = draft.enabled,
+                        interactionSource = null,
+                        indication = PressFeedback.overlay(Corners.md),
+                        role = Role.Switch,
+                    ) { checked -> onEdit { it.copy(enabled = checked) } }
                     .padding(horizontal = Spacing.md),
             ) {
                 Text(text = stringResource(id = R.string.rule_enabled), style = TextStyles.bodyCompact, color = colors.text, modifier = Modifier.weight(1f))
@@ -200,9 +204,8 @@ fun BlockRuleScreen(
                         .padding(top = Spacing.md)
                         .fillMaxWidth()
                         .heightIn(min = 52.dp)
-                        .clip(Corners.md)
-                        .background(colors.chip)
-                        .clickable { deleteDialog.show() }
+                        .background(colors.chip, Corners.md)
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.md)) { deleteDialog.show() }
                         .padding(horizontal = Spacing.md),
                 ) {
                     Text(text = stringResource(id = R.string.rule_delete), style = TextStyles.bodyCompact, color = MaterialTheme.colors.error)
@@ -234,8 +237,7 @@ private fun ConditionList(conditions: FlatCondition, onTest: (Int, FlatCondition
         modifier = Modifier
             .padding(horizontal = Spacing.md)
             .fillMaxWidth()
-            .clip(Corners.md)
-            .background(colors.chip),
+            .background(colors.chip, Corners.md),
     ) {
         conditions.tests.forEachIndexed { index, test ->
             if (index > 0) Box(modifier = Modifier.padding(start = Spacing.sm).fillMaxWidth().height(1.dp).background(colors.divider))
@@ -324,8 +326,7 @@ private fun ConditionRow(test: FlatCondition.Test, onChange: (FlatCondition.Test
                     tint = colors.textSecondary,
                     modifier = Modifier
                         .size(32.dp)
-                        .clip(Corners.full)
-                        .clickable(onClick = onRemove)
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), onClick = onRemove)
                         .padding(8.dp),
                 )
             },
@@ -420,9 +421,8 @@ private fun Pick(text: String, color: Color = ExtendedTheme.colors.text, onClick
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .heightIn(min = 36.dp)
-            .clip(Corners.sm)
             .onGloballyPositioned { bounds = it.boundsInWindow() }
-            .clickable { onClick(bounds) }
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm)) { onClick(bounds) }
             .padding(horizontal = Spacing.xs),
     ) {
         Text(text = text, style = TextStyles.bodyCompact, color = color, maxLines = 1)
@@ -438,8 +438,7 @@ private fun ValueInput(value: String, hint: String, regex: Boolean, onChange: (S
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .heightIn(min = 36.dp)
-            .clip(Corners.sm)
-            .background(colors.background)
+            .background(colors.background, Corners.sm)
             .padding(horizontal = 10.dp),
     ) {
         if (regex) Slash()
@@ -472,8 +471,7 @@ private fun LengthInput(length: Int, onChange: (Int) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .heightIn(min = 36.dp)
-            .clip(Corners.sm)
-            .background(colors.background)
+            .background(colors.background, Corners.sm)
             .padding(horizontal = 10.dp),
     ) {
         Box(modifier = Modifier.weight(1f)) {
@@ -509,10 +507,11 @@ private fun AddCondition(onAdd: (ConditionField) -> Unit) {
             .padding(horizontal = Spacing.md)
             .padding(top = Spacing.sm)
             .heightIn(min = 36.dp)
-            .clip(Corners.full)
-            .background(colors.chip)
+            .background(colors.chip, Corners.full)
             .onGloballyPositioned { bounds = it.boundsInWindow() }
-            .clickable { menus?.show(items = items, anchor = bounds, icon = Symbols.Add) }
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full)) {
+                menus?.show(items = items, anchor = bounds, icon = Symbols.Add)
+            }
             .padding(start = Spacing.sm, end = Spacing.md),
     ) {
         Icon(Symbols.Add, contentDescription = null, tint = colors.text, modifier = Modifier.size(18.dp))
@@ -694,8 +693,7 @@ private fun SentenceCard(
         modifier = Modifier
             .padding(horizontal = Spacing.md)
             .fillMaxWidth()
-            .clip(Corners.md)
-            .background(colors.chip)
+            .background(colors.chip, Corners.md)
             .padding(horizontal = Spacing.md, vertical = 14.dp),
     ) {
         Text(

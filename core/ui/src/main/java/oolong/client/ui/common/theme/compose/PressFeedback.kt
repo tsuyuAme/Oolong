@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -29,8 +31,14 @@ import kotlinx.coroutines.withTimeoutOrNull
  * content colour. Controls that stand on their own also shrink, with [pressScale].
  */
 object PressFeedback {
-    /** The veil. The app's default indication. */
-    val Overlay: IndicationNodeFactory = PressIndication
+    /** The veil over the whole bounds. The app's default indication. */
+    val Overlay: IndicationNodeFactory = PressIndication(null)
+
+    /**
+     * The veil in [shape], for a control of that shape: it needs no clip around it, whose edge
+     * some GPUs leave jagged where the shape is a path.
+     */
+    fun overlay(shape: Shape): IndicationNodeFactory = PressIndication(shape)
 }
 
 /**
@@ -93,16 +101,17 @@ private suspend fun CoroutineScope.followPresses(
     }
 }
 
-private object PressIndication : IndicationNodeFactory {
-    override fun create(interactionSource: InteractionSource): DelegatableNode = PressNode(interactionSource)
+private class PressIndication(private val shape: Shape?) : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): DelegatableNode = PressNode(interactionSource, shape)
 
-    override fun equals(other: Any?): Boolean = other === this
+    override fun equals(other: Any?): Boolean = other is PressIndication && other.shape == shape
 
-    override fun hashCode(): Int = System.identityHashCode(this)
+    override fun hashCode(): Int = shape.hashCode()
 }
 
 private class PressNode(
     private val interactionSource: InteractionSource,
+    private val shape: Shape?,
 ) : Modifier.Node(), DrawModifierNode, CompositionLocalConsumerModifierNode {
     /** 0 at rest, 1 fully pressed; the release spring may swing a little past 0. */
     private val progress = Animatable(0f, visibilityThreshold = Motion.ProgressThreshold)
@@ -114,6 +123,8 @@ private class PressNode(
     override fun ContentDrawScope.draw() {
         drawContent()
         val alpha = (PressedOverlayAlpha * progress.value).coerceIn(0f, PressedOverlayAlpha)
-        if (alpha > 0f) drawRect(currentValueOf(LocalContentColor).copy(alpha = alpha))
+        if (alpha <= 0f) return
+        val color = currentValueOf(LocalContentColor).copy(alpha = alpha)
+        if (shape == null) drawRect(color) else drawOutline(shape.createOutline(size, layoutDirection, this), color)
     }
 }

@@ -24,7 +24,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -141,8 +140,8 @@ fun Switch(
             Box(
                 Modifier
                     .size(TrackWidth, TrackHeight)
-                    .clip(Corners.full)
-                    .background(track)
+                    // Filled in its shape rather than clipped: a clip's edge is anti-aliased coarsely, or not at all, on some GPUs
+                    .background(track, Corners.full)
             )
         }
         val growWidth = HeldGrowthWidth * held
@@ -157,10 +156,9 @@ fun Switch(
                     IntOffset(x.roundToInt(), 0)
                 }
                 .requiredSize(knobWidth, knobHeight)
-                .shadow(KnobElevation, knobShape, ambientColor = KnobAmbient, spotColor = KnobSpot)
-                .clip(knobShape)
+                .shadow(KnobElevation, knobShape, clip = false, ambientColor = KnobAmbient, spotColor = KnobSpot)
                 // The white knob fades out as the glass fades in, where glass is drawn
-                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f))
+                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f), knobShape)
                 .controlLens(glassState, knobShape, held)
         )
     }

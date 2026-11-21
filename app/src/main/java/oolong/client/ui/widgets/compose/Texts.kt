@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.ApproachLayoutModifierNode
@@ -452,8 +451,7 @@ fun buildChipInlineContent(
                     color = color,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(Corners.full)
-                        .background(backgroundColor)
+                        .background(backgroundColor, Corners.full)
                         .padding(padding)
                 )
             }

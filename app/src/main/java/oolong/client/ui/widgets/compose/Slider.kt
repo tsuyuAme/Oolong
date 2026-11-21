@@ -29,7 +29,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
@@ -233,10 +232,9 @@ fun Slider(
                     IntOffset(x.roundToInt(), 0)
                 }
                 .requiredSize(knobWidth, knobHeight)
-                .shadow(KnobElevation, knobShape, ambientColor = KnobAmbient, spotColor = KnobSpot)
-                .clip(knobShape)
+                .shadow(KnobElevation, knobShape, clip = false, ambientColor = KnobAmbient, spotColor = KnobSpot)
                 // The white knob fades out as the glass fades in, where glass is drawn
-                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f))
+                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f), knobShape)
                 // Unlike the switch's, this knob mostly sits on the page, where white alone is lost
                 .border(Dp.Hairline, KnobRing.copy(alpha = KnobRing.alpha * (1f - held)), knobShape)
                 .controlLens(glassState, knobShape, held)

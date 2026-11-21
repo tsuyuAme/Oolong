@@ -49,6 +49,7 @@ import oolong.client.model.DeviceAlbum
 import oolong.client.model.DeviceImage
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.BackNavigationIcon
@@ -59,6 +60,7 @@ import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.SecondaryButton
 import oolong.client.ui.widgets.compose.TipScreen
 import oolong.client.ui.widgets.compose.clickMenu
+import oolong.client.ui.widgets.compose.maskTo
 
 /** What the picker may read of the device's pictures. */
 enum class PickerAccess {
@@ -164,7 +166,6 @@ private fun AlbumSwitcher(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(Corners.full)
                 .clickMenu(
                     items = {
                         albums.mapIndexed { index, album ->
@@ -178,6 +179,7 @@ private fun AlbumSwitcher(
                         }
                     },
                     enabled = enabled && albums.isNotEmpty(),
+                    indication = PressFeedback.overlay(Corners.full),
                 )
                 .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
         ) {
@@ -200,7 +202,7 @@ private fun AlbumCover(album: DeviceAlbum) {
         uri = album.cover,
         modifier = Modifier
             .size(40.dp)
-            .clip(SmoothCornerShape(6.dp)),
+            .maskTo(SmoothCornerShape(6.dp)),
     )
 }
 

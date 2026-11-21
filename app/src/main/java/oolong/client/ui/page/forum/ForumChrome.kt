@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +45,7 @@ import oolong.client.model.ForumTab
 import oolong.client.model.GoodClass
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.Avatar
@@ -198,9 +198,8 @@ private fun ForumHeaderDetails(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(ButtonHeight)
-                    .clip(SmoothCornerShape.Capsule)
-                    .background(if (done) accent.copy(alpha = if (ExtendedTheme.colors.isNightMode) 0.2f else 0.12f) else accent)
-                    .clickable(enabled = !done) { onEvent(ForumEvent.FollowOrSignIn) },
+                    .background(if (done) accent.copy(alpha = if (ExtendedTheme.colors.isNightMode) 0.2f else 0.12f) else accent, SmoothCornerShape.Capsule)
+                    .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), enabled = !done) { onEvent(ForumEvent.FollowOrSignIn) },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -286,15 +285,13 @@ private fun ForumLevel(forum: ForumDetail, accent: Color, modifier: Modifier = M
                 .fillMaxWidth()
                 .widthIn(min = 88.dp)
                 .height(4.dp)
-                .clip(SmoothCornerShape.Capsule)
-                .background(accent.copy(alpha = 0.2f))
+                .background(accent.copy(alpha = 0.2f), SmoothCornerShape.Capsule)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(max(0f, min(1f, forum.score / max(1f, forum.levelUpScore.toFloat()))))
                     .height(4.dp)
-                    .clip(SmoothCornerShape.Capsule)
-                    .background(accent)
+                    .background(accent, SmoothCornerShape.Capsule)
             )
         }
     }
@@ -330,8 +327,7 @@ internal fun ForumHeaderPlaceholder(
         if (loggedIn) {
             Box(
                 modifier = Modifier
-                    .clip(Corners.full)
-                    .placeholder(visible = true, highlight = PlaceholderHighlight.fade())
+                    .placeholder(visible = true, shape = Corners.full, highlight = PlaceholderHighlight.fade())
                     .padding(horizontal = 18.dp, vertical = 6.dp)
             ) {
                 Text(text = stringResource(id = R.string.button_sign_in), fontSize = 13.sp)

@@ -70,10 +70,12 @@ import oolong.client.R
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.Avatar
 import oolong.client.ui.widgets.compose.OwnAvatar
 import oolong.client.ui.widgets.compose.Sizes
+import oolong.client.ui.widgets.compose.maskTo
 import oolong.client.utils.Emoticon
 import oolong.client.utils.EmoticonManager
 import oolong.client.utils.StringUtil
@@ -324,8 +326,7 @@ private fun ReplyToChip(replyTo: ReplyTo, onDrop: () -> Unit) {
     Row(
         modifier = Modifier
             .height(28.dp)
-            .clip(ChipShape)
-            .background(colors.chip)
+            .background(colors.chip, ChipShape)
             .padding(start = 8.dp, end = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -396,8 +397,7 @@ private fun NoticeRow(
             .padding(horizontal = 12.dp, vertical = 2.dp)
             .fillMaxWidth()
             .heightIn(min = 36.dp)
-            .clip(Corners.lg)
-            .background(colors.chip)
+            .background(colors.chip, Corners.lg)
             .padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -425,9 +425,8 @@ private fun RowButton(text: String, onClick: () -> Unit) {
         color = colors.text,
         maxLines = 1,
         modifier = Modifier
-            .clip(ChipShape)
-            .background(colors.sheet)
-            .clickable(role = Role.Button, onClick = onClick)
+            .background(colors.sheet, ChipShape)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(ChipShape), role = Role.Button, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
@@ -445,9 +444,14 @@ private fun ToggleChip(
     Row(
         modifier = Modifier
             .height(26.dp)
-            .clip(ChipShape)
-            .background(background)
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .background(background, ChipShape)
+            .toggleable(
+                value = checked,
+                interactionSource = null,
+                indication = PressFeedback.overlay(ChipShape),
+                role = Role.Checkbox,
+                onValueChange = onCheckedChange,
+            )
             .padding(start = 7.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -678,7 +682,7 @@ private fun PictureStrip(
             Box(
                 modifier = Modifier
                     .size(ThumbnailSize)
-                    .clip(Corners.sm)
+                    .maskTo(Corners.sm)
                     .background(colors.chip)
             ) {
                 AsyncImage(
@@ -721,9 +725,8 @@ private fun PictureStrip(
                 Box(
                     modifier = Modifier
                         .size(ThumbnailSize)
-                        .clip(Corners.sm)
-                        .background(colors.chip)
-                        .clickable(role = Role.Button, onClick = onAdd),
+                        .background(colors.chip, Corners.sm)
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm), role = Role.Button, onClick = onAdd),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -759,8 +762,7 @@ fun EmoticonPanel(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(Corners.sm)
-                    .clickable { onEmoticonClick(emoticon) }
+                    .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm)) { onEmoticonClick(emoticon) }
                     .padding(8.dp),
             )
         }

@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -92,6 +91,7 @@ import oolong.client.components.automask.AutoMaskDownload
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.LocalExtendedColors
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.Button
@@ -305,8 +305,7 @@ private fun CancelButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.button,
         modifier = modifier
             .offset(x = -CancelRoom)
-            .clip(SmoothCornerShape.Capsule)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .padding(horizontal = CancelRoom, vertical = 12.dp),
     )
 }

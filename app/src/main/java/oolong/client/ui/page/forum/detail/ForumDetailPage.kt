@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -37,6 +36,7 @@ import oolong.client.arch.LoadStatus
 import oolong.client.model.ForumIntro
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TiebaLiteTheme
 import oolong.client.ui.navigation.ForumDetailKey
@@ -149,8 +149,7 @@ private fun ForumDetailContent(
         }
         Row(
             modifier = Modifier
-                .clip(Corners.sm)
-                .background(color = ExtendedTheme.colors.chip)
+                .background(color = ExtendedTheme.colors.chip, shape = Corners.sm)
                 .padding(vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -179,8 +178,7 @@ private fun ForumDetailContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(Corners.sm)
-                        .clickable(onClick = onOpenRule)
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm), onClick = onOpenRule)
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

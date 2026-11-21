@@ -832,6 +832,7 @@ private fun MorphingGlass(bounds: Rect, top: Dp, bottom: Dp, opacity: Float) {
                     Modifier.shadow(
                         elevation = if (colors.isNightMode) 32.dp else 24.dp,
                         shape = shape,
+                        clip = false,
                         ambientColor = Color.Black.copy(alpha = if (colors.isNightMode) 0.16f else 0.14f),
                         spotColor = Color.Black.copy(alpha = if (colors.isNightMode) 0.26f else 0.22f),
                     )

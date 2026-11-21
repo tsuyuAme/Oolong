@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -51,6 +50,7 @@ import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.TextStyles
 import oolong.client.ui.common.theme.compose.glassEdge
 import oolong.client.ui.widgets.compose.Avatar
+import oolong.client.ui.widgets.compose.maskTo
 import kotlin.math.roundToInt
 
 /** The login card once the account is in, handed over from the login page as it goes. */
@@ -134,10 +134,10 @@ private fun NoticeOverlay(notice: SignedInNotice, onDone: () -> Unit) {
             modifier = Modifier
                 .offset { IntOffset(left.roundToPx(), top.roundToPx()) }
                 .size(width, height)
-                .shadow(lerp(if (colors.isNightMode) 32.dp else 24.dp, 8.dp, m), shape, ambientColor = Color.Black.copy(alpha = 0.14f), spotColor = Color.Black.copy(alpha = 0.22f))
-                .clip(shape)
-                .background(colors.sheet)
-                .border(0.5.dp, colors.glassEdge, shape),
+                .shadow(lerp(if (colors.isNightMode) 32.dp else 24.dp, 8.dp, m), shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.14f), spotColor = Color.Black.copy(alpha = 0.22f))
+                .background(colors.sheet, shape)
+                .border(0.5.dp, colors.glassEdge, shape)
+                .maskTo(shape),
         ) {
             // The card as it was, giving way to the toast's line midway
             CardBody(

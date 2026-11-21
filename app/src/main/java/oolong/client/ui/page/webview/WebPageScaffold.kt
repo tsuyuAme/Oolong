@@ -58,11 +58,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -483,16 +484,17 @@ private fun AddressCapsule(
             .fillMaxWidth()
             .height(GlassTopBarItemHeight)
             .floatingGlass(CapsuleShape)
-            .clip(CapsuleShape)
             // Always in the chain, drawing nothing while idle: the glass under it must not see its
-            // modifiers change while it draws
+            // modifiers change while it draws. The capsule filled as far as the page has loaded
             .drawBehind {
                 val shown = fill.shown.value
                 if (shown > 0f) {
-                    drawRect(
-                        color = fillColor.copy(alpha = fillColor.alpha * shown),
-                        size = Size(size.width * fill.value.value, size.height),
-                    )
+                    clipRect(right = size.width * fill.value.value) {
+                        drawOutline(
+                            CapsuleShape.createOutline(size, layoutDirection, this),
+                            fillColor.copy(alpha = fillColor.alpha * shown),
+                        )
+                    }
                 }
             }
             // The glass answers the press

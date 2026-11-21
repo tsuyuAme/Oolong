@@ -1,12 +1,14 @@
 package oolong.client.ui.common
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.appendInlineContent
@@ -16,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +41,7 @@ import oolong.client.model.SubPost
 import oolong.client.model.TextSpan
 import oolong.client.models.PhotoViewData
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.windowsizeclass.LocalWindowSizeClass
 import oolong.client.ui.common.windowsizeclass.WindowWidthSizeClass
@@ -141,8 +143,8 @@ fun PostImage(
         contentDescription = null,
         modifier = Modifier
             .then(size)
-            .clip(SmoothCornerShape(if (rounded) context.appPreferences.radius.dp else 0.dp))
             .aspectRatio(image.aspectRatio),
+        shape = if (rounded) SmoothCornerShape(context.appPreferences.radius.dp) else null,
         photoViewData = photoViewData,
         contentScale = ContentScale.Crop,
     )
@@ -153,25 +155,36 @@ private fun PostVideo(video: PostContent.Video) {
     if (video.coverUrl.isBlank()) return
     val context = LocalContext.current
     val navigator = LocalNavigator.current
-    val modifier = Modifier
-        .clip(SmoothCornerShape(context.appPreferences.radius.dp))
-        .fillMaxWidth(mediaWidthFraction())
-        .aspectRatio(video.width * 1f / video.height)
+    val shape = SmoothCornerShape(context.appPreferences.radius.dp)
     if (video.url.isNotBlank()) {
         VideoCover(
             video = remember(video) {
                 ViewerVideo(video.url, video.coverUrl, video.width, video.height, video.duration)
             },
-            shape = SmoothCornerShape(context.appPreferences.radius.dp),
+            shape = shape,
             modifier = Modifier.fillMaxWidth(mediaWidthFraction()),
         )
     } else {
-        ContentImage(
-            imageUri = video.coverUrl,
-            contentDescription = stringResource(id = R.string.desc_video),
-            modifier = modifier.clickable { navigator.navigate(WebViewKey(video.webUrl)) },
-            contentScale = ContentScale.Crop,
-        )
+        val interactions = remember { MutableInteractionSource() }
+        Box(
+            Modifier
+                .fillMaxWidth(mediaWidthFraction())
+                .aspectRatio(video.width * 1f / video.height)
+                .clickable(interactionSource = interactions, indication = null) { navigator.navigate(WebViewKey(video.webUrl)) }
+        ) {
+            ContentImage(
+                imageUri = video.coverUrl,
+                contentDescription = stringResource(id = R.string.desc_video),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                shape = shape,
+            )
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .indication(interactions, PressFeedback.overlay(shape))
+            )
+        }
     }
 }
 

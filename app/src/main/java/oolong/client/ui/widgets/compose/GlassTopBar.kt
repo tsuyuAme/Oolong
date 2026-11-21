@@ -147,7 +147,7 @@ fun GlassTopBar(
     // Beside the rail they also keep it next to what the host puts at the end, which is always glass
     val glassAlways = glassButtons || largeTitle != null || (besideRail && LocalTopBarEnd.current != null)
     val barButtons = remember(scrollEdge, revealPx, glassAlways) {
-        BarButtons { if (glassAlways) 1f else scrollEdge?.scrolled?.let { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
+        BarButtons { if (glassAlways) 1f else scrollEdge?.blended { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
     }
     Layout(
         content = {

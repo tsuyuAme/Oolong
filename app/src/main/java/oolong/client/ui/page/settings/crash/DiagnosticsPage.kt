@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -154,8 +153,7 @@ fun DiagnosticsPage(
                             SelectionContainer(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(Corners.md)
-                                    .background(ExtendedTheme.colors.inset)
+                                    .background(ExtendedTheme.colors.inset, Corners.md)
                                     .padding(Spacing.sm),
                             ) {
                                 Text(

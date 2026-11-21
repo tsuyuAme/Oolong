@@ -90,16 +90,24 @@ class PageScrollState internal constructor() {
      * what follows it, such as a header the pages share, moves smoothly from one to the other.
      */
     val scrolled: Int?
-        get() {
-            val near = sources.sortedBy { abs(it.start) }
-            val a = near.getOrNull(0) ?: return null
-            val b = near.getOrNull(1)
-            val aScrolled = a.scrolled().coerceAtMost(FarScroll)
-            if (b == null || a.start == 0f) return aScrolled
-            val span = abs(a.start) + abs(b.start)
-            if (span <= 0f) return aScrolled
-            return lerp(aScrolled.toFloat(), b.scrolled().coerceAtMost(FarScroll).toFloat(), abs(a.start) / span).toInt()
-        }
+        get() = blended { it.coerceAtMost(FarScroll).toFloat() }?.toInt()
+
+    /**
+     * What [of] makes of how far the content in view has scrolled, blended between two pages while
+     * a page of pages is swiped, or null when no list reports. Blending what is drawn rather than
+     * the pixels keeps an effect that is full after a short scroll, such as the scroll edge, from
+     * holding until the very end of the swipe and then dropping.
+     */
+    fun blended(of: (Int) -> Float): Float? {
+        val near = sources.sortedBy { abs(it.start) }
+        val a = near.getOrNull(0) ?: return null
+        val b = near.getOrNull(1)
+        val aValue = of(a.scrolled())
+        if (b == null || a.start == 0f) return aValue
+        val span = abs(a.start) + abs(b.start)
+        if (span <= 0f) return aValue
+        return lerp(aValue, of(b.scrolled()), abs(a.start) / span)
+    }
 
     /**
      * The scaffold, which the bar and the content are laid out in. What docks into the bar is

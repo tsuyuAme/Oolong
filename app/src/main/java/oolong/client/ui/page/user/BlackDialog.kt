@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.filter
@@ -30,6 +29,7 @@ import oolong.client.R
 import oolong.client.repository.BlackSettings
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.TextStyles
 import oolong.client.ui.widgets.compose.CheckboxRowInset
 import oolong.client.ui.widgets.compose.Dialog
@@ -88,8 +88,7 @@ private fun BarRow(text: String, checked: Boolean, onChange: (Boolean) -> Unit) 
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clip(Corners.sm)
-            .clickable { onChange(!checked) },
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm)) { onChange(!checked) },
     ) {
         Checkbox(
             checked = checked,

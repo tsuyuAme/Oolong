@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -316,7 +315,8 @@ private fun TopicHeader(topic: Topic, barHeight: Dp) {
                         imageUri = topic.picture,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(CoverSize).clip(Corners.lg),
+                        modifier = Modifier.size(CoverSize),
+                        shape = Corners.lg,
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -401,8 +401,7 @@ private fun PinnedLabel() {
         style = TextStyles.footnote,
         color = ExtendedTheme.colors.textSecondary,
         modifier = Modifier
-            .clip(Corners.xs)
-            .background(ExtendedTheme.colors.chip)
+            .background(ExtendedTheme.colors.chip, Corners.xs)
             .padding(horizontal = Spacing.xs, vertical = 2.dp),
     )
 }

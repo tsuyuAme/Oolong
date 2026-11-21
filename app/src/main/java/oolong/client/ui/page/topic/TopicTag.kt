@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -27,8 +26,7 @@ fun TopicTag(tag: HotTopic.Tag, modifier: Modifier = Modifier) {
         style = TextStyles.micro,
         color = color,
         modifier = modifier
-            .clip(Corners.xs)
-            .background(color.copy(alpha = 0.12f))
+            .background(color.copy(alpha = 0.12f), Corners.xs)
             .padding(horizontal = 4.dp, vertical = 1.dp),
     )
 }

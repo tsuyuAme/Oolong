@@ -66,6 +66,12 @@ class PhotoViewViewModel @Inject constructor(
         loads.launch("start") {
             runCatching { repository.pictures(source, source.picId, source.picIndex, previous = false) }
                 .onSuccess { page ->
+                    // Some threads' picture pages leave out pictures the card shows, or miss the one opened:
+                    // keep the given ones then, or the viewer can't reach them and jumps away from the one opened
+                    if (page.total < data.picItems.size || page.pictures.none { it.picId == source.picId }) {
+                        _state.value = given(data)
+                        return@onSuccess
+                    }
                     val first = page.pictures.firstOrNull()?.overallIndex ?: source.picIndex
                     // The pictures before the one opened are the ones given, numbered back from the first loaded
                     val loaded = page.pictures.mapTo(HashSet()) { it.picId }

@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +54,7 @@ import oolong.client.R
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.TextStyles
 import oolong.client.utils.SharedPreferencesUtil
 
@@ -250,8 +250,7 @@ private fun PermissionDialog(dialog: AppDialog.Permission) {
                 .padding(horizontal = CheckboxRowInset)
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .clip(Corners.sm)
-                .clickable { remember = !remember },
+                .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm)) { remember = !remember },
         ) {
             Checkbox(
                 checked = remember,
@@ -270,8 +269,7 @@ private fun LoadingDialog() {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(Corners.xl)
-                .background(colors.sheet)
+                .background(colors.sheet, Corners.xl)
                 .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
             CircularProgressIndicator(color = colors.accent, strokeWidth = 2.5.dp, modifier = Modifier.size(22.dp))
@@ -290,9 +288,8 @@ private fun PermissionTipBanner(tip: AppDialog.PermissionTip) {
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(16.dp)
             .fillMaxWidth()
-            .shadow(12.dp, Corners.xl)
-            .clip(Corners.xl)
-            .background(colors.sheet)
+            .shadow(12.dp, Corners.xl, clip = false)
+            .background(colors.sheet, Corners.xl)
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Text(text = tip.title, color = colors.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)

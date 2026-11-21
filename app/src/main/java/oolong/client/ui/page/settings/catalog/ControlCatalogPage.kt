@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import kotlinx.collections.immutable.persistentListOf
 import oolong.client.ui.common.theme.compose.Corners
@@ -128,8 +127,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(Corners.md)
-            .background(ExtendedTheme.colors.card)
+            .background(ExtendedTheme.colors.card, Corners.md)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {

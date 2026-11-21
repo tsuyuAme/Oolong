@@ -85,9 +85,8 @@ internal fun rememberScrollProgress(
     }
     return remember(page, range) {
         ScrollProgress {
-            val scrolled = page?.scrolled ?: return@ScrollProgress 0f
             val span = range.endInclusive - range.start
-            if (span > 0f) ((scrolled - range.start) / span).coerceIn(0f, 1f) else 1f
+            page?.blended { scrolled -> if (span > 0f) ((scrolled - range.start) / span).coerceIn(0f, 1f) else 1f } ?: 0f
         }
     }
 }

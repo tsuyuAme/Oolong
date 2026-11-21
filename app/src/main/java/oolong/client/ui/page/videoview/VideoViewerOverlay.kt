@@ -1142,10 +1142,9 @@ private fun Scrubber(
             Modifier
                 .offset { IntOffset((travel * fraction - knobWidth / 2).roundToPx(), 0) }
                 .requiredSize(knobWidth, knobHeight)
-                .shadow(2.dp * (1f - held), knobShape)
-                .clip(knobShape)
+                .shadow(2.dp * (1f - held), knobShape, clip = false)
                 // The white knob fades out as the glass fades in, where glass is drawn
-                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f))
+                .background(Color.White.copy(alpha = if (glassAvailable) 1f - held else 1f), knobShape)
                 .controlLens(glassState, knobShape, held),
         )
     }

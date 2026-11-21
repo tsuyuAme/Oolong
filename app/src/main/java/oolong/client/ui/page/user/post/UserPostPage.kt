@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -42,6 +41,7 @@ import oolong.client.model.UserReplies
 import oolong.client.model.UserThread
 import oolong.client.ui.common.relativeTime
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.navigation.ForumKey
 import oolong.client.ui.navigation.SubPostsKey
@@ -343,9 +343,8 @@ private fun UserRepliesItem(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
-                        .clip(SmoothCornerShape(6.dp))
-                        .background(ExtendedTheme.colors.inset)
-                        .clickable {
+                        .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) {
                             onClickOriginThread(post.threadId)
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),

@@ -41,7 +41,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -192,7 +192,7 @@ fun GlassTabRow(
                 // What the lens sees, with what is behind the capsule: the capsule, its tabs and the
                 // bubble, which fades from under it
                 .floatingGlass(TabCapsule, barButton = false, lensTarget = true)
-                .clip(TabCapsule)
+                .maskTo(TabCapsule)
                 // The same outside floating chrome, without what is behind
                 .hazeSource(glassState),
             contentAlignment = Alignment.CenterStart,
@@ -383,11 +383,15 @@ fun GlassTab(
         Row(
             modifier = modifier
                 .then(if (lens || classic) Modifier else Modifier.pressScale(interactionSource))
-                .clip(if (classic) RectangleShape else TabCapsule)
+                .then(if (classic) Modifier.clipToBounds() else Modifier)
                 .selectable(
                     selected = selected,
                     interactionSource = interactionSource,
-                    indication = if (lens) null else PressFeedback.Overlay,
+                    indication = when {
+                        lens -> null
+                        classic -> PressFeedback.Overlay
+                        else -> PressFeedback.overlay(TabCapsule)
+                    },
                     enabled = enabled,
                     role = Role.Tab,
                     onClick = onClick,

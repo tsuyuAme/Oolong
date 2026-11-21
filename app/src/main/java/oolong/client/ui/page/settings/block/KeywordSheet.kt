@@ -39,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -105,8 +104,7 @@ fun KeywordSheet(text: String, onBlock: (List<String>) -> Unit, onDismiss: () ->
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 8.dp, bottom = Spacing.sm)
                         .size(width = 36.dp, height = 5.dp)
-                        .clip(SmoothCornerShape.Capsule)
-                        .background(colors.text.copy(alpha = 0.18f)),
+                        .background(colors.text.copy(alpha = 0.18f), SmoothCornerShape.Capsule),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -185,8 +183,7 @@ private fun KeywordInput(value: String, onChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 46.dp)
-            .clip(Corners.sm)
-            .background(colors.inset)
+            .background(colors.inset, Corners.sm)
             .padding(horizontal = Spacing.sm, vertical = 12.dp),
     ) {
         if (value.isEmpty()) Text(text = stringResource(id = R.string.rule_hint_keyword), style = TextStyles.body, color = colors.textSecondary)

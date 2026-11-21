@@ -23,7 +23,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -110,11 +109,10 @@ fun SegmentedControl(
         Row(
             modifier = Modifier
                 .onSizeChanged { trackSize = it }
-                .clip(Corners.full)
                 // What the held pill sees: the track, its labels, and the pill as it fades, so what
                 // it bends from past its edge is the track rather than loose labels
                 .hazeSource(glassState)
-                .background(trackColor)
+                .background(trackColor, Corners.full)
                 .drawBehind {
                     val width = (size.width - inset * 2) / count
                     val height = size.height - inset * 2

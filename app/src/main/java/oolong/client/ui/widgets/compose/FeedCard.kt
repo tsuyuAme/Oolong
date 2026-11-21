@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -87,6 +86,7 @@ import oolong.client.ui.common.theme.compose.CapTextScale
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.windowsizeclass.LocalWindowSizeClass
@@ -223,8 +223,7 @@ fun Badge(
 ) {
     Row(
         modifier = modifier
-            .clip(shape)
-            .background(backgroundColor)
+            .background(backgroundColor, shape)
             .padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -356,9 +355,8 @@ fun ForumInfoChip(
     Row(
         modifier = Modifier
             .heightIn(min = 28.dp)
-            .clip(SmoothCornerShape.Capsule)
-            .background(color = ExtendedTheme.colors.chip)
-            .clickable(onClick = onClick)
+            .background(color = ExtendedTheme.colors.chip, shape = SmoothCornerShape.Capsule)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .padding(start = if (imageUri != null) 4.dp else 10.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -392,10 +390,11 @@ private fun MediaPlaceholder(
 ) {
     Row(
         modifier = modifier
-            .clip(SmoothCornerShape(6.dp))
-            .background(ExtendedTheme.colors.chip)
+            .background(ExtendedTheme.colors.chip, SmoothCornerShape(6.dp))
             .clickable(
-                enabled = onClick != null
+                interactionSource = null,
+                indication = PressFeedback.overlay(SmoothCornerShape(6.dp)),
+                enabled = onClick != null,
             ) { onClick?.invoke() }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -537,9 +536,8 @@ private fun ThreadMedia(
                                     NetworkImage(
                                         imageUri = remember(media) { media.url },
                                         contentDescription = null,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(MediaShape),
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = MediaShape,
                                         photoViewData = remember(index, medias, forumId, forumName, threadId) { photoViewData(index) },
                                         contentScale = ContentScale.Crop
                                     )
@@ -584,9 +582,8 @@ private fun SinglePhoto(
         NetworkImage(
             imageUri = remember(media) { media.url },
             contentDescription = null,
-            modifier = Modifier
-                .size(width, height)
-                .clip(MediaShape),
+            modifier = Modifier.size(width, height),
+            shape = MediaShape,
             photoViewData = photoViewData,
             contentScale = ContentScale.Crop
         )
@@ -790,9 +787,8 @@ fun FeedCard(
                 SharedThreadCard(
                     shared = shared,
                     modifier = Modifier
-                        .clip(SmoothCornerShape(6.dp))
-                        .background(ExtendedTheme.colors.inset)
-                        .clickable { onClickShared(shared) }
+                        .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) { onClickShared(shared) }
                         .padding(16.dp)
                 )
             }
@@ -802,9 +798,8 @@ fun FeedCard(
                     reply = reply,
                     onClickUser = onClickUser,
                     modifier = Modifier
-                        .clip(SmoothCornerShape(6.dp))
-                        .background(ExtendedTheme.colors.inset)
-                        .clickable { onClickFeedReply(thread) }
+                        .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) { onClickFeedReply(thread) }
                         .padding(12.dp)
                 )
             }
@@ -917,9 +912,8 @@ private fun FeedReplyBlock(
                 imageUri = image.small,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(ReplyImageSize)
-                    .clip(MediaShape),
+                modifier = Modifier.size(ReplyImageSize),
+                shape = MediaShape,
             )
         }
     }

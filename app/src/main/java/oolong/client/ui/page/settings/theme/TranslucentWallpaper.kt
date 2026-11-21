@@ -156,6 +156,9 @@ data class TranslucentWallpaper(
             return prefs[TextKey] == null && prefs[ThemeKey] == ThemeUtil.TRANSLUCENT_THEME_DARK && prefs[PathKey] != null
         }
 
+        /** Whether [path] is still the drawn wallpaper saved, not one replaced since. */
+        suspend fun isCurrent(context: Context, path: String): Boolean = context.dataStore.data.first()[PathKey] == path
+
         /**
          * Saves [wallpaper] with the drawn wallpaper at [path], whose text is [darkText], all at
          * once and awaited: the theme switch that follows reads them straight away. Returns the
@@ -250,6 +253,18 @@ suspend fun Context.redrawOutdatedWallpaper() {
     if (!TranslucentWallpaper.isOutdated(this)) return
     val source = TranslucentWallpaper.source(this)
     if (!source.exists()) return
+    drawWallpaper(source, TranslucentWallpaper.saved(this))
+}
+
+/**
+ * Draws the wallpaper again from the image picked when the drawn one at [path] can't be shown,
+ * as when its file is gone, as applying it again in the settings would. Without the image
+ * picked, nothing is done.
+ */
+suspend fun Context.repairWallpaper(path: String) {
+    if (path.isEmpty() || !TranslucentWallpaper.isCurrent(this, path)) return
+    val source = TranslucentWallpaper.source(this)
+    if (!withContext(Dispatchers.IO) { source.length() > 0 }) return
     drawWallpaper(source, TranslucentWallpaper.saved(this))
 }
 

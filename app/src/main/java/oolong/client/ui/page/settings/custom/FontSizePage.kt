@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -84,6 +83,7 @@ import oolong.client.ui.widgets.compose.GlassTopBarTitle
 import oolong.client.ui.widgets.compose.MyBackHandler
 import oolong.client.ui.widgets.compose.Slider
 import oolong.client.ui.widgets.compose.Switch
+import oolong.client.ui.widgets.compose.maskTo
 import kotlin.math.roundToInt
 
 /**
@@ -243,8 +243,7 @@ private fun Ticks(systemAt: Float) {
                 modifier = Modifier
                     .offset(x = travel * (step.toFloat() / last) - 1.dp)
                     .size(width = 2.dp, height = if (step == default) 8.dp else 4.dp)
-                    .clip(Corners.full)
-                    .background(colors.text.copy(alpha = if (step == default) 0.4f else 0.2f)),
+                    .background(colors.text.copy(alpha = if (step == default) 0.4f else 0.2f), Corners.full),
             )
         }
         Text(
@@ -322,8 +321,8 @@ private fun FontSizePreview(scale: Float) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .fillMaxWidth()
             .height(PreviewHeight)
-            .clip(Corners.lg)
-            .border(1.dp, colors.divider, Corners.lg),
+            .border(1.dp, colors.divider, Corners.lg)
+            .maskTo(Corners.lg),
     ) {
         CompositionLocalProvider(
             LocalDensity provides textScaledDensity(density.density, scale),

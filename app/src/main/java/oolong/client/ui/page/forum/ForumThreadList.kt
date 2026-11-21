@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -40,6 +39,7 @@ import oolong.client.arch.PagerState
 import oolong.client.model.ForumTab
 import oolong.client.model.ThreadSummary
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
@@ -166,8 +166,7 @@ private fun UnfoldTopsButton(count: Int, onClick: () -> Unit) {
     val description = pluralStringResource(id = R.plurals.button_unfold_forum_tops, count = count, count)
     Row(
         modifier = Modifier
-            .clip(SmoothCornerShape.Capsule)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -219,8 +218,7 @@ private fun TypeChip(text: String, accent: Color) {
         fontWeight = FontWeight.SemiBold,
         color = accent,
         modifier = Modifier
-            .clip(SmoothCornerShape.Capsule)
-            .background(accent.copy(alpha = 0.14f))
+            .background(accent.copy(alpha = 0.14f), SmoothCornerShape.Capsule)
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
 }

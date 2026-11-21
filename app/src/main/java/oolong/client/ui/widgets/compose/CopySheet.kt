@@ -32,7 +32,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -148,8 +147,7 @@ private fun CopySheet(content: List<PostContent>, onDismiss: () -> Unit) {
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 8.dp, bottom = Spacing.sm)
                         .size(width = 36.dp, height = 5.dp)
-                        .clip(SmoothCornerShape.Capsule)
-                        .background(colors.text.copy(alpha = 0.18f)),
+                        .background(colors.text.copy(alpha = 0.18f), SmoothCornerShape.Capsule),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

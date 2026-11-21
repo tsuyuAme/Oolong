@@ -13,7 +13,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,8 +43,7 @@ fun TimePicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(WheelItemHeight)
-                .clip(Corners.sm)
-                .background(colors.chip),
+                .background(colors.chip, Corners.sm),
         )
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             WheelPicker(

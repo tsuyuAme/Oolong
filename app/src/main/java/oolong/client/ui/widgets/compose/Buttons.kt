@@ -23,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
@@ -62,18 +61,10 @@ fun Button(
     // The press veil takes the content colour, so a filled button lightens rather than darkens
     CompositionLocalProvider(LocalContentColor provides contentColor.copy(alpha = 1f)) {
         Surface(
-            // The caller's modifier first, so its padding lies outside the shape instead of being
-            // clipped into it
+            // The caller's modifier first, so its padding lies outside the shape
             modifier = modifier
                 .heightIn(min = minHeight)
-                .pressScale(interactionSource)
-                .clip(shape)
-                .clickable(
-                    onClick = onClick,
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    indication = PressFeedback.Overlay
-                ),
+                .pressScale(interactionSource),
             shape = shape,
             color = colors.backgroundColor(enabled).value,
             contentColor = contentColor.copy(alpha = 1f),
@@ -82,9 +73,17 @@ fun Button(
         ) {
             CompositionLocalProvider(LocalContentAlpha provides contentColor.alpha) {
                 ProvideTextStyle(value = TextStyles.label) {
-                    // Surface passes its minimum height on, so the row centres its content in it
+                    // Surface passes its minimum height on, so the row centres its content in it.
+                    // Clickable in here, over the Surface's bounds, its press veil drawn in shape.
                     Row(
-                        Modifier.padding(contentPadding),
+                        Modifier
+                            .clickable(
+                                onClick = onClick,
+                                enabled = enabled,
+                                interactionSource = interactionSource,
+                                indication = PressFeedback.overlay(shape)
+                            )
+                            .padding(contentPadding),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                         content = content

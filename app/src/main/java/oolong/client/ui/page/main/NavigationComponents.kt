@@ -91,6 +91,7 @@ import oolong.client.R
 import oolong.client.ui.common.theme.compose.ExtendedColors
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.White
@@ -161,11 +162,12 @@ fun NavigationRail(
                     Column(
                         modifier = Modifier
                             .size(width = itemWidth, height = itemHeight)
-                            .clip(NavPillShape)
                             .then(
                                 if (menu == null) {
                                     Modifier.selectable(
                                         selected = selected,
+                                        interactionSource = null,
+                                        indication = PressFeedback.overlay(NavPillShape),
                                         role = Role.Tab,
                                         onClick = { onSelect(index) },
                                     )
@@ -175,7 +177,7 @@ fun NavigationRail(
                                             role = Role.Tab
                                             this.selected = selected
                                         }
-                                        .longPressMenu(items = menu, onClick = { onSelect(index) })
+                                        .longPressMenu(items = menu, onClick = { onSelect(index) }, indication = PressFeedback.overlay(NavPillShape))
                                 }
                             ),
                         horizontalAlignment = Alignment.CenterHorizontally,

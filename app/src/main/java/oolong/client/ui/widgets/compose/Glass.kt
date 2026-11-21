@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -257,7 +256,7 @@ fun Modifier.topBarGlass(): Modifier {
     val scrollEdge = LocalPageScroll.current
     val revealPx = with(LocalDensity.current) { TopBarEdgeReveal.toPx() }
     val shown: () -> Float = remember(scrollEdge, revealPx) {
-        { scrollEdge?.scrolled?.let { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
+        { scrollEdge?.blended { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
     }
     return scrollEdgeGlass(top = true, shown = shown)
 }
@@ -456,17 +455,15 @@ private fun Modifier.floatingGlassOf(
         // page does without glass. The layer stays: under the app's lookahead, a part without one that only moves, as the
         // keyboard moves a search field, is moved in the lookahead pass but left where it was drawn.
         if (tier == GlassTier.Glass) {
-            graphicsLayer {
-                // As the shadow's layer did, it cuts what is on the glass to its shape, such as a
-                // press's veil
-                this.shape = shape
-                clip = true
-            }
+            // Cuts the glass, drawn with plain round corners, and what is on it, such as a
+            // press's veil, to the shape. A mask rather than a clip: some GPUs leave the edge of
+            // a clip to a path jagged
+            maskTo(shape)
         } else {
             // Faded by a layer that is always there: one added only while fading would change the
             // modifiers around the blur as it updates, which froze the page
             graphicsLayer { this.alpha = alpha }
-                .shadow(elevation = if (tier == GlassTier.Blur) FloatingElevation else 0.dp, shape = shape, ambientColor = ShadowAmbient, spotColor = ShadowSpot)
+                .shadow(elevation = if (tier == GlassTier.Blur) FloatingElevation else 0.dp, shape = shape, clip = false, ambientColor = ShadowAmbient, spotColor = ShadowSpot)
         }
     } else {
         onSizeChanged { empty = it.width == 0 || it.height == 0 }.pointerInput(Unit) {
@@ -508,7 +505,7 @@ private fun Modifier.floatingGlassOf(
         // Over a wallpaper only a light blur, untinted, so the wallpaper still shows through
         val style = if (bar == null) TranslucentFloatingStyle else remember(shown) { TranslucentFloatingStyle.then { alpha(shown()) } }
         return chrome
-            .clip(shape)
+            .maskTo(shape)
             .hazeBlur(input = input!!, style = style)
             .then(pressVeil)
             .then(edged)
@@ -570,7 +567,7 @@ private fun Modifier.floatingGlassOf(
                 }
             }
             chrome
-                .clip(shape)
+                .maskTo(shape)
                 .hazeBlur(input = input!!, style = style)
                 .then(pressVeil)
                 .then(edged)
@@ -578,13 +575,14 @@ private fun Modifier.floatingGlassOf(
 
         GlassTier.Solid -> {
             val fill = if (colors.isTranslucent) colors.chromeTint.copy(alpha = TranslucentSolidTint) else colors.background
+            // Filled in its shape before the mask, which is only for what is on it
             chrome
-                .clip(shape)
                 .then(
-                    if (bar == null) Modifier.background(fill) else Modifier.drawBehind {
+                    if (bar == null) Modifier.background(fill, shape) else Modifier.drawBehind {
                         drawOutline(shape.createOutline(size, layoutDirection, this), fill.copy(alpha = fill.alpha * shown()))
                     }
                 )
+                .maskTo(shape)
                 .then(pressVeil)
                 .then(edged)
         }
@@ -620,10 +618,7 @@ fun Modifier.mediaGlass(shape: Shape, interactionSource: MutableInteractionSourc
             }
         }
     }
-    return graphicsLayer {
-        this.shape = shape
-        clip = true
-    }.hazeGlass(
+    return maskTo(shape).hazeGlass(
         input = source.input,
         style = style,
         interactionSource = interactionSource,
@@ -667,7 +662,7 @@ fun Modifier.classicBarGlass(top: Boolean): Modifier {
     val revealPx = with(LocalDensity.current) { TopBarEdgeReveal.toPx() }
     val line = colors.divider
     // A page that doesn't say how far it has scrolled keeps its bar
-    val shown: () -> Float = { if (!top) 1f else scrollEdge?.scrolled?.let { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
+    val shown: () -> Float = { if (!top) 1f else scrollEdge?.blended { (it / revealPx).coerceIn(0f, 1f) } ?: 1f }
     val edged = graphicsLayer { alpha = shown() }.drawWithContent {
         drawContent()
         val y = if (top) size.height - ClassicBarLine.toPx() / 2 else ClassicBarLine.toPx() / 2
@@ -755,7 +750,7 @@ fun Modifier.glassLens(shape: Shape, optics: GlassOptics = UnblurredClearOptics)
     }
     // Not inside any source of this state, so it sees the content and the lens targets. A lens is
     // looked through, so it renders at full quality; it is small and only shown while pressed.
-    return clipToSmooth(shape).hazeGlass(
+    return maskToSmooth(shape).hazeGlass(
         input = source.input,
         style = style,
         performanceMode = HazePerformanceMode.Quality,
@@ -799,7 +794,7 @@ fun Modifier.controlLens(state: HazeState, shape: Shape, alpha: Float, optics: G
             alpha(alpha)
         }
     }
-    return clipToSmooth(shape).hazeGlass(input = HazeInput.Sources(state), style = style, performanceMode = HazePerformanceMode.Quality)
+    return maskToSmooth(shape).hazeGlass(input = HazeInput.Sources(state), style = style, performanceMode = HazePerformanceMode.Quality)
 }
 
 /**
@@ -822,7 +817,7 @@ fun Modifier.chromeControlLens(fallback: HazeState, shape: Shape, alpha: Float, 
             alpha(alpha)
         }
     }
-    return clipToSmooth(shape).hazeGlass(input = source.input, style = style, performanceMode = HazePerformanceMode.Quality)
+    return maskToSmooth(shape).hazeGlass(input = source.input, style = style, performanceMode = HazePerformanceMode.Quality)
 }
 
 /**
@@ -876,7 +871,7 @@ fun Modifier.loupeLens(state: HazeState, shape: Shape): Modifier {
             optics(LoupeOptics)
         }
     }
-    return clipToSmooth(shape).hazeGlass(input = HazeInput.Sources(state), style = style, performanceMode = HazePerformanceMode.Quality)
+    return maskToSmooth(shape).hazeGlass(input = HazeInput.Sources(state), style = style, performanceMode = HazePerformanceMode.Quality)
 }
 
 /** Clear glass, unblurred, with a deep rim for a lens a hundred dp or more across. */
@@ -889,7 +884,7 @@ private val LoupeOptics = GlassOptics.clear.copy(
 
 /**
  * The shape as Haze's glass takes it, with circular corners: a smooth one lies just inside, and is
- * cut to by the glass's clip ([clipToSmooth] for a lens).
+ * cut to by the glass's mask ([maskToSmooth] for a lens).
  */
 private fun Shape.glassShape(): RoundedCornerShape = when (this) {
     is RoundedCornerShape -> this
@@ -898,7 +893,7 @@ private fun Shape.glassShape(): RoundedCornerShape = when (this) {
 }
 
 /** Cuts a lens drawn by Haze, which knows only circular corners, to a smooth [shape]. */
-private fun Modifier.clipToSmooth(shape: Shape): Modifier = if (shape is SmoothCornerShape) clip(shape) else this
+private fun Modifier.maskToSmooth(shape: Shape): Modifier = if (shape is SmoothCornerShape) maskTo(shape) else this
 
 /** Above the scaffold content, which is captured at the default zIndex of 0. */
 private const val LensTargetZIndex = 1f

@@ -1,0 +1,24 @@
+{
+  "zh": {
+    "修复": [
+      "部分手机上，开关、按钮、卡片、图片与玻璃的圆角边缘有锯齿",
+      "从列表打开帖子时，作者与吧的头像先闪一下占位图",
+      "列表滚动后左右滑动切换标签，顶栏的模糊突然消失",
+      "动态中部分帖子的图片无法滑到下一张，或打开第二张后跳回第一张",
+      "壁纸偶尔丢失，页面背景变黑，需重新应用壁纸才能恢复",
+      "选择文字复制时，没有选中的标点变成了空格",
+      "更新说明中，有标题与没有标题的条目样式不一致"
+    ]
+  },
+  "en": {
+    "Fixed": [
+      "On some phones, the rounded edges of switches, buttons, cards, pictures and glass looked jagged",
+      "Opening a thread from a list flashed a placeholder for the author's and forum's avatars",
+      "After scrolling a list, swiping to another tab made the top bar's blur vanish at once",
+      "In Explore, some threads' pictures couldn't be swiped to the next one, or opening the second jumped back to the first",
+      "The wallpaper occasionally went missing, leaving a black background until it was applied again",
+      "When copying picked words, punctuation left unpicked between them turned into spaces",
+      "In release notes, points with and without a title looked different"
+    ]
+  }
+}

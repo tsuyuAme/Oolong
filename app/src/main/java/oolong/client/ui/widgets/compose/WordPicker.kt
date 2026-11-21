@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isUnspecified
@@ -148,23 +147,27 @@ class WordPickerState(pieces: List<WordPiece>) {
 
     /**
      * What copying takes: with nothing picked, the whole text. Otherwise the picked pieces in
-     * order, keeping what stood between two of them and setting parts further apart off by a
-     * space.
+     * order, keeping the spaces and marks that stood between two of them; parts with words left
+     * out between them are set off by a space.
      */
     val copied: String
         get() {
             if (!anyPicked) return pieces.joinToString("") { it.text }
             val out = StringBuilder()
-            pieces.forEachIndexed { i, piece ->
-                when {
-                    piece.picked -> out.append(piece.text)
-                    !piece.isWord -> {
-                        val before = pieces.subList(0, i).lastOrNull { it.isWord }
-                        val after = pieces.subList(i + 1, pieces.size).firstOrNull { it.isWord }
-                        if (before?.picked == true && after?.picked == true) out.append(piece.text)
-                    }
-                    out.isNotEmpty() && !out.endsWith(' ') && pieces.subList(i + 1, pieces.size).any { it.picked } -> out.append(' ')
+            var i = 0
+            while (i < pieces.size) {
+                if (pieces[i].picked) {
+                    out.append(pieces[i].text)
+                    i++
+                    continue
                 }
+                // A run of pieces not picked: only what lies between two picked ones counts
+                val end = (i until pieces.size).firstOrNull { pieces[it].picked } ?: pieces.size
+                if (out.isNotEmpty() && end < pieces.size) {
+                    val gap = pieces.subList(i, end)
+                    if (gap.none { it.isWord && !it.clings }) gap.forEach { out.append(it.text) } else out.append(' ')
+                }
+                i = end
             }
             return out.toString().replace(Spaces, " ").trim()
         }
@@ -411,8 +414,7 @@ private fun Piece(piece: WordPiece, appearDelay: Long, appears: Boolean, modifie
                 if (piece.isWord) {
                     Modifier
                         .widthIn(min = ChipHeight)
-                        .clip(Corners.sm)
-                        .background(background)
+                        .background(background, Corners.sm)
                         .padding(horizontal = 11.dp)
                 } else {
                     Modifier.padding(horizontal = 2.dp)

@@ -14,7 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavMetadataKey
@@ -92,8 +91,7 @@ private class BottomSheetScene<T : Any>(
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 8.dp)
                         .size(width = 36.dp, height = 5.dp)
-                        .clip(SmoothCornerShape.Capsule)
-                        .background(ExtendedTheme.colors.text.copy(alpha = 0.18f))
+                        .background(ExtendedTheme.colors.text.copy(alpha = 0.18f), SmoothCornerShape.Capsule)
                 )
                 entry.Content()
             },

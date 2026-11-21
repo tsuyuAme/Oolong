@@ -11,12 +11,12 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
 
@@ -56,9 +56,8 @@ private fun StepButton(icon: ImageVector, label: String, enabled: Boolean, onCli
         tint = if (enabled) colors.text else colors.textDisabled,
         modifier = Modifier
             .size(32.dp)
-            .clip(Corners.full)
-            .background(colors.background)
-            .clickable(enabled = enabled, onClick = onClick)
+            .background(colors.background, Corners.full)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), enabled = enabled, onClick = onClick)
             .padding(7.dp),
     )
 }

@@ -57,6 +57,8 @@ val applicationVersionCode: Int = run {
 if (isPreRelease) {
     applicationVersionName += "-$preReleaseName.$preReleaseVer"
 }
+// The release notes are named for the version alone, without the build's commit
+val releaseNotesVersion = applicationVersionName
 if (!isSelfBuild && !sha.isNullOrEmpty()) {
     applicationVersionName += "+${sha.substring(0, 7)}"
 }
@@ -162,7 +164,7 @@ abstract class BundleReleaseNotes : DefaultTask() {
 }
 
 val bundleReleaseNotes = tasks.register<BundleReleaseNotes>("bundleReleaseNotes") {
-    notes.from(rootProject.file("tools/release/notes/$applicationVersionName.json"))
+    notes.from(rootProject.file("tools/release/notes/$releaseNotesVersion.json"))
 }
 
 androidComponents {

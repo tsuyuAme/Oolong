@@ -37,6 +37,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -123,6 +124,7 @@ import oolong.client.ui.page.settings.block.LocalBlockShortcuts
 import oolong.client.ui.page.settings.theme.TranslucentWallpaper
 import oolong.client.ui.page.settings.theme.redrawOutdatedWallpaper
 import oolong.client.ui.page.settings.theme.rememberWallpaperDim
+import oolong.client.ui.page.settings.theme.repairWallpaper
 import oolong.client.ui.utils.DevicePosture
 import oolong.client.ui.utils.isBookPosture
 import oolong.client.ui.utils.isSeparating
@@ -632,11 +634,20 @@ class MainActivity : AppCompatActivity() {
                 // Darker at night, under the glass too
                 val nightOverlay = if (ThemeUtil.isDark()) TranslucentWallpaper.nightOverlay(rememberWallpaperDim()) else 0f
                 Box(modifier = Modifier.fillMaxSize().wallpaperGlassSource(wallpaperGlass)) {
+                    // A drawn wallpaper that can't be shown, its file gone, is drawn again once
+                    val scope = rememberCoroutineScope()
+                    var repaired by remember { mutableStateOf<String?>(null) }
                     AsyncImage(
                         model = backgroundFile,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        onError = {
+                            if (repaired != backgroundPath) {
+                                repaired = backgroundPath
+                                scope.launch { context.repairWallpaper(backgroundPath) }
+                            }
+                        },
                     )
                     if (nightOverlay > 0f) {
                         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = nightOverlay)))

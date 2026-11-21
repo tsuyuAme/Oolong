@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -141,11 +140,10 @@ private fun RowScope.MenuTile(
             .height(TileHeight)
             .alpha(if (enabled) 1f else DisabledAlpha)
             .pressScale(interactionSource)
-            .clip(TileShape)
-            .background(background)
+            .background(background, TileShape)
             .clickable(
                 interactionSource = interactionSource,
-                indication = PressFeedback.Overlay,
+                indication = PressFeedback.overlay(TileShape),
                 enabled = enabled,
                 role = role,
                 onClick = onClick,
@@ -192,8 +190,7 @@ private fun FooterButton(text: String, danger: Boolean = false, onClick: () -> U
         color = if (danger) DangerColor else colors.textSecondary,
         modifier = Modifier
             .pressScale(interactionSource)
-            .clip(TileShape)
-            .clickable(interactionSource = interactionSource, indication = PressFeedback.Overlay, role = Role.Button, onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = PressFeedback.overlay(TileShape), role = Role.Button, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),
     )
 }

@@ -18,7 +18,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -35,6 +34,7 @@ import oolong.client.model.NotificationType
 import oolong.client.ui.common.relativeTime
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.navigation.SubPostsKey
 import oolong.client.ui.navigation.ThreadKey
 import oolong.client.ui.navigation.UserProfileKey
@@ -208,9 +208,8 @@ private fun NotificationItemContent(
                 text = quoteText,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(Corners.sm)
-                    .clickable { onOpenQuote(notification) }
                     .background(ExtendedTheme.colors.chip, Corners.sm)
+                    .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm)) { onOpenQuote(notification) }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 color = ExtendedTheme.colors.textSecondary,
                 fontSize = 14.sp,

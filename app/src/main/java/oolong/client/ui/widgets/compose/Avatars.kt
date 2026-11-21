@@ -1,5 +1,6 @@
 package oolong.client.ui.widgets.compose
 
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
@@ -15,12 +16,16 @@ import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -28,12 +33,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.BitmapImage
+import coil3.SingletonImageLoader
+import coil3.asImage
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import oolong.client.Incognito
 import oolong.client.R
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.widgets.compose.placeholder.PlaceholderHighlight
 import oolong.client.ui.widgets.compose.placeholder.fade
 import oolong.client.ui.widgets.compose.placeholder.placeholder
@@ -63,8 +72,7 @@ fun AvatarIcon(
         tint = color,
         modifier = modifier
             .size(size)
-            .clip(shape)
-            .background(color = backgroundColor)
+            .background(color = backgroundColor, shape = shape)
             .padding((size - iconSize) / 2),
     )
 }
@@ -87,8 +95,7 @@ fun AvatarIcon(
         tint = color,
         modifier = modifier
             .size(size)
-            .clip(shape)
-            .background(color = backgroundColor)
+            .background(color = backgroundColor, shape = shape)
             .padding((size - iconSize) / 2),
     )
 }
@@ -139,23 +146,60 @@ fun Avatar(
     decodedAt: Dp? = null,
 ) {
     val placeholder = rememberImagePlaceholder()
+    val placeholderColor = (placeholder as ColorPainter).color
     val context = LocalContext.current
     val density = LocalDensity.current
-    val model = if (decodedAt == null) {
-        data
-    } else {
-        remember(data, decodedAt, density) {
-            val px = with(density) { decodedAt.roundToPx() }
-            ImageRequest.Builder(context).data(data).size(px, px).build()
-        }
+    val name = remember(data) { data?.let { avatarName(it) ?: pictureName(it) } }
+    val model = remember(data, decodedAt, density, placeholderColor) {
+        ImageRequest.Builder(context)
+            .data(data)
+            // The same avatar, a user's or a forum's, drawn before at another size or address, shows until
+            // this one is in
+            .placeholderMemoryCacheKey(name?.let { ShownPictures[it] })
+            .placeholder(ColorDrawable(placeholderColor.toArgb()).asImage())
+            .apply {
+                if (decodedAt != null) {
+                    val px = with(density) { decodedAt.roundToPx() }
+                    size(px, px)
+                }
+            }
+            .build()
     }
+    // A smooth shape takes the picture as a paint, as ContentImage does; a circle stays a clip
+    val shaped = shape is SmoothCornerShape
+    var shown by remember(data, shaped) {
+        mutableStateOf(
+            if (shaped) {
+                name?.let { ShownPictures[it] }?.let { (SingletonImageLoader.get(context).memoryCache?.get(it)?.image as? BitmapImage)?.bitmap }
+            } else {
+                null
+            }
+        )
+    }
+    var animated by remember(data) { mutableStateOf(false) }
     AsyncImage(
         model = model,
-        placeholder = placeholder,
         error = placeholder,
+        onSuccess = { state ->
+            name?.let { ShownPictures[it] = state.result.memoryCacheKey }
+            if (shaped) {
+                val image = state.result.image
+                shown = (image as? BitmapImage)?.bitmap
+                animated = image !is BitmapImage
+            }
+        },
+        onError = if (shaped) {
+            { shown = null }
+        } else {
+            null
+        },
         contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
-        modifier = modifier.clip(shape),
+        modifier = if (shaped) {
+            modifier.shapedPicture(shape, ContentScale.Crop, null) { ShapedPicture(shown, animated, placeholderColor) }
+        } else {
+            modifier.clip(shape)
+        },
     )
 }
 

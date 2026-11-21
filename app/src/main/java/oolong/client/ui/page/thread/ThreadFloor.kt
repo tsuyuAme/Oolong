@@ -359,11 +359,9 @@ private fun FloorBadge(post: Post, onClick: () -> Unit, modifier: Modifier = Mod
             Box(
                 modifier = Modifier
                     .widthIn(max = Gutter)
-                    .clip(SmoothCornerShape.Capsule)
-                    .background(background)
+                    .background(background, SmoothCornerShape.Capsule)
                     .padding(2.dp)
-                    .clip(SmoothCornerShape.Capsule)
-                    .background(ExtendedTheme.colors.chip)
+                    .background(ExtendedTheme.colors.chip, SmoothCornerShape.Capsule)
                     .padding(horizontal = 5.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -575,11 +573,10 @@ private fun SubPostsCapsule(item: PostItem, opensInPlace: Boolean, onClick: () -
             .padding(start = Gutter, top = ToReplies, bottom = FloorBottom)
             .pressScale(interaction)
             .height(CapsuleHeight)
-            .clip(SmoothCornerShape.Capsule)
-            .background(colors.chip)
+            .background(colors.chip, SmoothCornerShape.Capsule)
             .clickable(
                 interactionSource = interaction,
-                indication = PressFeedback.Overlay,
+                indication = PressFeedback.overlay(SmoothCornerShape.Capsule),
                 role = Role.Button,
                 onClickLabel = if (opensInPlace) stringResource(id = R.string.button_expand_reply) else null,
                 onClick = onClick,
@@ -635,8 +632,7 @@ private fun ClassicSubPosts(
         modifier = Modifier
             .padding(start = Gutter, top = ToReplies, bottom = FloorBottom)
             .fillMaxWidth()
-            .clip(ClassicBlockShape)
-            .background(if (colors.isNightMode) Color.White.copy(alpha = 0.05f) else colors.accent.copy(alpha = 0.06f))
+            .background(if (colors.isNightMode) Color.White.copy(alpha = 0.05f) else colors.accent.copy(alpha = 0.06f), ClassicBlockShape)
             .padding(12.dp),
     ) {
         post.subPosts.forEach { subPost ->
@@ -1084,9 +1080,8 @@ private fun ActionPill(icon: ImageVector, text: String, active: Boolean, onClick
         modifier = Modifier
             .pressScale(interactionSource)
             .height(36.dp)
-            .clip(SmoothCornerShape.Capsule)
-            .background(ExtendedTheme.colors.chip)
-            .clickable(interactionSource = interactionSource, indication = PressFeedback.Overlay, onClick = onClick)
+            .background(ExtendedTheme.colors.chip, SmoothCornerShape.Capsule)
+            .clickable(interactionSource = interactionSource, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1149,6 +1144,5 @@ private fun Modifier.linkPress(onClick: () -> Unit): Modifier = this
         val placeable = measurable.measure(constraints.offset(2 * pad, 2 * pad))
         layout(placeable.width - 2 * pad, placeable.height - 2 * pad) { placeable.place(-pad, -pad) }
     }
-    .clip(Corners.sm)
-    .clickable(onClick = onClick)
+    .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm), onClick = onClick)
     .padding(LinkPressPad)

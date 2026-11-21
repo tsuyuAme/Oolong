@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -78,6 +77,7 @@ import oolong.client.ui.widgets.compose.TextButton
 import oolong.client.ui.widgets.compose.bottomEdgeGlass
 import oolong.client.ui.widgets.compose.choiceMenuItems
 import oolong.client.ui.widgets.compose.clickMenu
+import oolong.client.ui.widgets.compose.maskTo
 import oolong.client.ui.widgets.compose.menuAnchor
 import oolong.client.ui.widgets.compose.rememberMenuTriggerState
 
@@ -202,8 +202,7 @@ private fun Notes(version: String, groups: Map<String, List<String>>, details: S
         modifier = Modifier
             .widthIn(max = 600.dp)
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(colors.chip)
+            .background(colors.chip, CardShape)
             .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
@@ -219,17 +218,18 @@ private fun Notes(version: String, groups: Map<String, List<String>>, details: S
             Text(text = group, style = TextStyles.name.copy(color = colors.text))
             Column(modifier = Modifier.padding(top = 2.dp, bottom = 20.dp)) {
                 items.forEach { item ->
-                    // "Title\nwhat it does for you", set as a settings row is; else a plain point
+                    // One kind of point for all: "Title\nwhat it does for you" sets the title as the point's
+                    // words and what it does under them, a plain item has the words alone
                     val title = item.substringBefore('\n', missingDelimiterValue = "")
-                    if (title.isNotEmpty()) {
-                        Column(modifier = Modifier.padding(top = 8.dp)) {
-                            Text(text = title, style = TextStyles.label.copy(color = colors.text))
-                            Text(text = item.substringAfter('\n'), style = TextStyles.caption.copy(color = colors.textSecondary))
-                        }
-                    } else {
-                        Row {
-                            Text(text = "·", style = TextStyles.bodyCompact.copy(color = colors.textSecondary), modifier = Modifier.padding(end = 8.dp))
-                            Text(text = item, style = TextStyles.bodyCompact.copy(color = colors.text))
+                    Row(modifier = Modifier.padding(top = 6.dp)) {
+                        Text(text = "·", style = TextStyles.bodyCompact.copy(color = colors.textSecondary), modifier = Modifier.padding(end = 8.dp))
+                        Column {
+                            if (title.isNotEmpty()) {
+                                Text(text = title, style = TextStyles.bodyCompact.copy(color = colors.text, fontWeight = FontWeight.Medium))
+                                Text(text = item.substringAfter('\n'), style = TextStyles.caption.copy(color = colors.textSecondary))
+                            } else {
+                                Text(text = item, style = TextStyles.bodyCompact.copy(color = colors.text))
+                            }
                         }
                     }
                 }
@@ -250,8 +250,8 @@ private fun Settings(state: UpdateState, onAutoCheck: (Boolean) -> Unit, onChann
         modifier = Modifier
             .widthIn(max = 600.dp)
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(colors.chip),
+            .background(colors.chip, CardShape)
+            .maskTo(CardShape),
     ) {
         Row(
             modifier = Modifier
@@ -368,9 +368,13 @@ private fun ProgressButton(text: String, onClick: () -> Unit, progress: Float? =
             .fillMaxWidth()
             .height(52.dp)
             .pressScale(interactionSource)
-            .clip(SmoothCornerShape.Capsule)
-            .background(if (progress != null) colors.emphasis.copy(alpha = 0.18f) else colors.emphasis)
-            .clickable(interactionSource = interactionSource, indication = PressFeedback.Overlay, enabled = enabled && progress == null, onClick = onClick),
+            .background(if (progress != null) colors.emphasis.copy(alpha = 0.18f) else colors.emphasis, SmoothCornerShape.Capsule)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = PressFeedback.overlay(SmoothCornerShape.Capsule),
+                enabled = enabled && progress == null,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         if (progress == null) {
@@ -381,7 +385,7 @@ private fun ProgressButton(text: String, onClick: () -> Unit, progress: Float? =
                 modifier = Modifier
                     .matchParentSize()
                     .drawWithContent { clipRect(right = size.width * progress) { this@drawWithContent.drawContent() } }
-                    .background(colors.emphasis),
+                    .background(colors.emphasis, SmoothCornerShape.Capsule),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(text = text, style = label.copy(color = colors.onEmphasis))

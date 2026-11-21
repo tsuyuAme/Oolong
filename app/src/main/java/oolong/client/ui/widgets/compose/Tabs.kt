@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Rect
@@ -436,8 +435,7 @@ fun PagerTabIndicator(
                 .offset(x = animatedIndicatorOffset, y = (-8).dp)
                 .width(16.dp)
                 .height(3.dp)
-                .clip(Corners.full)
-                .background(color = LocalContentColor.current)
+                .background(color = LocalContentColor.current, shape = Corners.full)
         )
     }
 }
@@ -459,8 +457,7 @@ fun TabIndicator(
                 .offset(x = animatedIndicatorOffset, y = (-8).dp)
                 .width(tabIndicatorWidth)
                 .height(3.dp)
-                .clip(Corners.full)
-                .background(color = LocalContentColor.current)
+                .background(color = LocalContentColor.current, shape = Corners.full)
         )
     }
 }

@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -208,8 +207,8 @@ fun TopSearchField(state: MainSearchState, onOpen: () -> Unit, modifier: Modifie
                 .pressScale(interactionSource)
                 // The same glass as the field it turns into; over the page it can't see through, so
                 // it shows as the glass's solid form
-                .then(if (plain) Modifier.clip(CapsuleShape).background(colors.searchField) else Modifier.floatingGlass(CapsuleShape))
-                .clickable(interactionSource = interactionSource, indication = PressFeedback.Overlay, role = Role.Button, onClick = onOpen)
+                .then(if (plain) Modifier.background(colors.searchField, CapsuleShape) else Modifier.floatingGlass(CapsuleShape))
+                .clickable(interactionSource = interactionSource, indication = PressFeedback.overlay(CapsuleShape), role = Role.Button, onClick = onOpen)
                 .padding(start = if (compact) 0.dp else (FieldHeight - IconSize) / 2),
         ) {
             Icon(
@@ -450,10 +449,9 @@ private fun FieldButton(icon: ImageVector, label: String, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(FieldHeight)
-            .clip(CapsuleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = PressFeedback.Overlay,
+                indication = PressFeedback.overlay(CapsuleShape),
                 role = Role.Button,
                 onClick = onClick,
             ),

@@ -26,7 +26,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +40,7 @@ import oolong.client.model.SearchHistoryItem
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TiebaLiteTheme
 import oolong.client.ui.widgets.compose.Button
@@ -96,13 +96,14 @@ fun SearchHistoryList(
                 Box(
                     modifier = Modifier
                         .padding(bottom = 8.dp)
-                        .clip(Corners.full)
+                        .background(ExtendedTheme.colors.chip, Corners.full)
                         .combinedClickable(
+                            interactionSource = null,
+                            indication = PressFeedback.overlay(Corners.full),
                             onClick = { onSearchHistoryClick(searchHistory) },
                             onLongClickLabel = stringResource(R.string.title_delete),
                             onLongClick = { onDelete(searchHistory) }
                         )
-                        .background(ExtendedTheme.colors.chip)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(

@@ -24,7 +24,6 @@ import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -293,9 +292,8 @@ private fun ThreadRow(thread: HistoryEntry.Thread) {
                 imageUri = thread.thumbnail,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(ThumbnailSize)
-                    .clip(Corners.sm),
+                modifier = Modifier.size(ThumbnailSize),
+                shape = Corners.sm,
             )
         }
     }

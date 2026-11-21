@@ -47,6 +47,7 @@ import oolong.client.R
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.ContentImage
+import oolong.client.ui.widgets.compose.maskTo
 import oolong.client.ui.widgets.compose.shouldLoadImage
 
 /**
@@ -77,7 +78,6 @@ fun VideoCover(
         Box(
             modifier = Modifier
                 .size(width, height)
-                .clip(shape)
                 .onGloballyPositioned {
                     val rect = Rect(it.positionInWindow(), it.size.toSize())
                     bounds = rect
@@ -114,6 +114,7 @@ fun VideoCover(
                 contentScale = ContentScale.Crop,
                 load = remember { shouldLoadImage(context, skipNetworkCheck = false) },
                 modifier = Modifier.fillMaxSize(),
+                shape = shape,
             )
             Box(
                 modifier = Modifier
@@ -146,19 +147,22 @@ fun VideoCover(
             }
             val watched = viewer?.watched?.get(video.key)
             if (watched != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color.White.copy(alpha = 0.3f)),
-                ) {
+                // Along the bottom edge, so cut to the cover's corners
+                Box(Modifier.matchParentSize().maskTo(shape)) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(watched.coerceIn(0f, 1f))
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
                             .height(3.dp)
-                            .background(Color.White),
-                    )
+                            .background(Color.White.copy(alpha = 0.3f)),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(watched.coerceIn(0f, 1f))
+                                .height(3.dp)
+                                .background(Color.White),
+                        )
+                    }
                 }
             }
         }

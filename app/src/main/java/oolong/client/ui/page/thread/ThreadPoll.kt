@@ -19,8 +19,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import oolong.client.model.Poll
 import oolong.client.model.PollOption
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
@@ -53,8 +55,7 @@ fun PollCard(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         modifier = modifier
-            .clip(Corners.md)
-            .background(colors.inset)
+            .background(colors.inset, Corners.md)
             .padding(Spacing.md),
     ) {
         if (poll.title.isNotBlank()) Text(text = poll.title, style = TextStyles.name, color = colors.text)
@@ -112,10 +113,9 @@ private fun ChoiceRow(option: PollOption, selected: Boolean, onClick: () -> Unit
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 44.dp)
-            .clip(Corners.sm)
-            .background(if (selected) colors.accent.copy(alpha = 0.12f) else colors.card)
+            .background(if (selected) colors.accent.copy(alpha = 0.12f) else colors.card, Corners.sm)
             .then(if (selected) Modifier.border(1.dp, colors.accent, Corners.sm) else Modifier)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.sm), onClick = onClick)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
     ) {
         Text(
@@ -139,9 +139,11 @@ private fun ResultRow(option: PollOption, total: Long, chosen: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 44.dp)
-            .clip(Corners.sm)
-            .background(colors.card)
-            .drawBehind { drawRect(fill, size = size.copy(width = size.width * share)) }
+            .background(colors.card, Corners.sm)
+            .drawBehind {
+                val outline = Corners.sm.createOutline(size, layoutDirection, this)
+                clipRect(right = size.width * share) { drawOutline(outline, fill) }
+            }
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
     ) {
         Text(

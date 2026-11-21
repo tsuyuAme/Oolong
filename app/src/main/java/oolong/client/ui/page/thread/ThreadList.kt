@@ -29,7 +29,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -49,6 +48,7 @@ import oolong.client.models.PhotoViewData
 import oolong.client.models.PicItem
 import oolong.client.repository.ThreadSort
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.widgets.compose.ChromeStyle
@@ -222,9 +222,8 @@ private fun FirstPost(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 16.dp)
-                        .clip(SmoothCornerShape(6.dp))
-                        .background(ExtendedTheme.colors.inset)
-                        .clickable {
+                        .background(ExtendedTheme.colors.inset, SmoothCornerShape(6.dp))
+                        .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape(6.dp))) {
                             onEvent(ThreadEvent.OpenOriginThread(shared.id, shared.forumId))
                         }
                         .padding(16.dp)

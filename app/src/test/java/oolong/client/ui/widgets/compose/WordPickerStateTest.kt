@@ -88,6 +88,15 @@ class WordPickerStateTest {
     }
 
     @Test
+    fun `copying keeps marks left unpicked between picked words`() {
+        val pieces = splitWords("剧透一下：主角其实没死！真的", Locale.SIMPLIFIED_CHINESE, punctuation = true)
+        val state = WordPickerState(pieces)
+        state.pieces.forEachIndexed { i, piece -> if (piece.isWord && !piece.clings) state.toggle(i) }
+
+        assertEquals("剧透一下：主角其实没死！真的", state.copied)
+    }
+
+    @Test
     fun `links, mentions and emoticons are whole pieces that do not split`() {
         val state = WordPickerState(copyPieces(content))
         val mention = state.pieces.indexOfFirst { it.text == "@小林" }

@@ -14,7 +14,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.key
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
@@ -24,6 +24,7 @@ import oolong.client.ui.common.theme.compose.Radius
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.widgets.compose.Container
 import oolong.client.ui.widgets.compose.GlassScaffold
+import oolong.client.ui.widgets.compose.maskTo
 import oolong.client.ui.widgets.compose.verticalScrollUnderBar
 
 lateinit var LocalPrefsDataStore: ProvidableCompositionLocal<DataStore<Preferences>>
@@ -94,8 +95,8 @@ private fun SettingInGroup(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .padding(top = if (first && index == 0) 8.dp else 0.dp)
-            .clip(shape)
-            .background(ExtendedTheme.colors.chip)
+            .background(ExtendedTheme.colors.chip, shape)
+            .then(if (first || last) Modifier.maskTo(shape) else Modifier.clipToBounds())
             .padding(top = if (first) 4.dp else 0.dp, bottom = if (last) 4.dp else 0.dp)
     ) {
         content()
