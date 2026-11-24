@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.collections.immutable.ImmutableList
@@ -69,20 +70,16 @@ fun SegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     trackColor: Color = ExtendedTheme.colors.chip,
-    /** Smaller track and labels — for dense toolbars (e.g. thread header). */
+    /** Smaller track and padding for tight headers (e.g. thread reply bar). */
     compact: Boolean = false,
 ) {
     val colors = ExtendedTheme.colors
-    val minHeight = if (compact) 26.dp else 32.dp
-    val optionPadding = if (compact) 6.dp else 8.dp
-    val labelStyle = if (compact) TextStyles.caption else TextStyles.label
     // The page's own colour; on the translucent theme, which has none, that of an opaque surface
     val pillColor = if (colors.background.alpha < 1f) colors.sheet else colors.background
     // Where the pill is, in options; follows the finger while held
     val position = remember { Animatable(selected.toFloat(), Motion.ProgressThreshold) }
     var holding by remember { mutableStateOf(false) }
-    // Always follow [selected] when not mid-drag; clear stuck hold after parent reloads
-    // (e.g. thread list refresh on see-lz toggle) so the control cannot stay unresponsive.
+    // Clear stuck hold after parent reloads (e.g. see-lz list refresh)
     LaunchedEffect(selected) {
         holding = false
         position.snapTo(selected.toFloat())
@@ -125,9 +122,7 @@ fun SegmentedControl(
                     )
                 }
                 .pointerInput(count, trackSize.width, trackSize.height) {
-                    // Recompute width on every gesture — size at modifier install time is often 0
-                    // or stale after layout / see-lz list reload, which made taps pick the wrong
-                    // (or same) option and look "stuck" until another control forced a restart.
+                    // Recompute width every gesture — install-time size is often 0/stale
                     fun optionAt(x: Float): Float {
                         val w = (size.width - inset * 2) / count
                         if (w <= 0f) return currentSelected.toFloat()
@@ -158,7 +153,6 @@ fun SegmentedControl(
                                     if (change.isConsumed) break
                                     val moved = change.position - down.position
                                     if (!dragging && (abs(moved.x) > touchSlop || abs(moved.y) > touchSlop)) {
-                                        // Up and down is the page's to scroll
                                         if (abs(moved.y) > abs(moved.x)) break
                                         dragging = true
                                     }
@@ -185,11 +179,13 @@ fun SegmentedControl(
             options.forEachIndexed { index, option ->
                 val chosen = index == selected
                 val shown = index == highlighted
+                val minH = if (compact) 26.dp else 32.dp
+                val padH = if (compact) 6.dp else 8.dp
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = minHeight)
+                        .heightIn(min = minH)
                         .semantics(mergeDescendants = true) {
                             role = Role.Tab
                             this.selected = chosen
@@ -198,11 +194,12 @@ fun SegmentedControl(
                                 true
                             }
                         }
-                        .padding(horizontal = optionPadding),
+                        .padding(horizontal = padH),
                 ) {
                     Text(
                         text = option,
-                        style = labelStyle,
+                        style = TextStyles.label,
+                        fontSize = if (compact) 12.sp else TextStyles.label.fontSize,
                         fontWeight = if (shown) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (shown) colors.text else colors.textSecondary,
                         maxLines = 1,

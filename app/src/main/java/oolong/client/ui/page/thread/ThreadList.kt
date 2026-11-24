@@ -296,19 +296,20 @@ internal fun ThreadHeader(
                 color = ExtendedTheme.colors.text,
             )
             Spacer(modifier = Modifier.weight(1f))
-            // Controls, so their text grows only as far as the bars' does, leaving the count its room
+            // Controls: 全部/只看楼主 first, then sort — smaller to reduce mis-taps
             CapTextScale {
-                SortSwitch(
-                    newestFirst = state.query.sort == ThreadSort.NewestFirst,
-                    onEvent = onEvent,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
                 SegmentedControl(
                     options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
                     selected = if (state.query.seeLz) 1 else 0,
                     onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
-                    // Both options as wide as the wider one
-                    modifier = Modifier.width(IntrinsicSize.Max),
+                    compact = true,
+                    modifier = Modifier
+                        .padding(end = 6.dp)
+                        .width(IntrinsicSize.Max),
+                )
+                SortSwitch(
+                    newestFirst = state.query.sort == ThreadSort.NewestFirst,
+                    onEvent = onEvent,
                 )
             }
         }
@@ -333,7 +334,7 @@ private fun SortSwitch(newestFirst: Boolean, onEvent: (ThreadEvent) -> Unit, mod
     }
 }
 
-private val SortSwitchSize = 38.dp
+private val SortSwitchSize = 28.dp
 
 @Composable
 private fun LoadPreviousButton(onEvent: (ThreadEvent) -> Unit) {
@@ -571,5 +572,5 @@ internal fun SortIcon(flipped: Boolean, tint: Color) {
     )
 }
 
-private val SwitchInset = 4.dp
+private val SwitchInset = 6.dp
 private val SwitchGap = 0.dp
