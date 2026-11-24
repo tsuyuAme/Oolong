@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.material.Colors
+import androidx.compose.material.LocalRippleConfiguration
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
@@ -313,8 +314,9 @@ fun TiebaLiteTheme(
             typography = Typography,
             shapes = Shapes,
         ) {
-            // Inside MaterialTheme, which provides its own ripple
-            CompositionLocalProvider(LocalIndication provides PressFeedback.Overlay) {
+            // Inside MaterialTheme, which provides its own ripple. Material's own components ask
+            // for a ripple directly rather than the indication: without a configuration they draw none
+            CompositionLocalProvider(LocalIndication provides PressFeedback.Overlay, LocalRippleConfiguration provides null) {
                 ProvideChromeStyle { ProvideGlassChoice(content) }
             }
         }

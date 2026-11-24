@@ -16,8 +16,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.FrameRateCategory
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.preferredFrameRate
 import androidx.compose.ui.unit.dp
 import oolong.client.arch.GlobalEvent
 import oolong.client.arch.onGlobalEvent
@@ -41,7 +43,8 @@ fun MyLazyColumn(
     }
     LazyColumn(
         // A list laid out from the bottom has nothing to say about its top
-        modifier = if (reverseLayout) modifier else modifier.pageScroll(state),
+        modifier = (if (reverseLayout) modifier else modifier.pageScroll(state))
+            .highFrameRateWhile(state.isScrollInProgress),
         state = state,
         contentPadding = contentPadding,
         reverseLayout = reverseLayout,
@@ -72,7 +75,8 @@ fun MyLazyVerticalGrid(
     }
     LazyVerticalGrid(
         columns = columns,
-        modifier = if (reverseLayout) modifier else modifier.pageScroll(state),
+        modifier = (if (reverseLayout) modifier else modifier.pageScroll(state))
+            .highFrameRateWhile(state.isScrollInProgress),
         state = state,
         contentPadding = contentPadding,
         reverseLayout = reverseLayout,
@@ -83,6 +87,15 @@ fun MyLazyVerticalGrid(
         content = content,
     )
 }
+
+/**
+ * Asks for the screen's highest frame rate while [scrolling], from a drag to the end of a fling,
+ * and leaves it to the system otherwise. Lists don't ask on their own as views' lists do, and from
+ * Android 15 a phone that changes its refresh rate keeps a list that doesn't ask at its normal
+ * rate, often 60Hz, when it moves slowly.
+ */
+private fun Modifier.highFrameRateWhile(scrolling: Boolean): Modifier =
+    preferredFrameRate(if (scrolling) FrameRateCategory.High else FrameRateCategory.Default)
 
 /**
  * A sticky header that pins below the list's top content padding instead of at the top edge of

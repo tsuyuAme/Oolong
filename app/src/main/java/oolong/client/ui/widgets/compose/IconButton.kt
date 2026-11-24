@@ -32,7 +32,7 @@ fun IconButton(
     content: @Composable () -> Unit,
 ) {
     val source = interactionSource ?: remember { MutableInteractionSource() }
-    val onBarGlass = LocalBarButtons.current != null
+    val onBarGlass = pressedByGlass()
     Box(
         modifier = modifier
             .then(if (onBarGlass) Modifier else Modifier.pressScale(source))

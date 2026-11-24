@@ -48,9 +48,10 @@ fun TipScreen(
         if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
     val widthFraction =
         if (LocalWindowSizeClass.current.widthSizeClass == WindowWidthSizeClass.Compact) 0.9f else 0.5f
+    // The full width, so the narrower column inside is centred in it rather than left at the start
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier

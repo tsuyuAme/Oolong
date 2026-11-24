@@ -101,6 +101,17 @@ fun ThreadScreen(
         // The bars follow the scroll away and back
         val page = rememberPageScrollState()
         val hide = rememberScrollProgress(away = GlassTopBarRowHeight, enabled = { !tooShortToHide }, page = page)
+        // The bar's switches come as the reply header goes under the bar. Off screen, the header
+        // is past when the list starts after it, as when the thread opened at a later floor
+        val headerUnderBar = rememberScrollProgress(ReplyHeader, page = page)
+        val filterShown: () -> Float = {
+            val headerShown = listState.layoutInfo.visibleItemsInfo.any { it.index == THREAD_HEADER_INDEX }
+            when {
+                headerShown -> headerUnderBar.value
+                listState.firstVisibleItemIndex > THREAD_HEADER_INDEX -> 1f
+                else -> 0f
+            }
+        }
         GlassScaffold(
             pageScroll = page,
             scaffoldState = scaffoldState,
@@ -109,7 +120,14 @@ fun ThreadScreen(
                     forum = state.thread?.forum,
                     onEvent = handleEvent,
                     filter = if (state.thread != null) {
-                        { ThreadFilter(state.query.seeLz, handleEvent) }
+                        {
+                            ThreadFilterSwitches(
+                                seeLz = state.query.seeLz,
+                                newestFirst = state.query.sort == ThreadSort.NewestFirst,
+                                onEvent = handleEvent,
+                                shown = filterShown,
+                            )
+                        }
                     } else null,
                 ) { hide.value }
             },

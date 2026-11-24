@@ -2,6 +2,7 @@ package oolong.client.ui.page.user
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.navigation.UserFollowsKey
 import oolong.client.ui.page.LocalNavigator
 import oolong.client.ui.widgets.compose.Avatar
@@ -249,12 +251,14 @@ private fun ProfileStat(value: String, label: String, onClick: (() -> Unit)? = n
 private fun ProfileButton(user: UserProfile, isSelf: Boolean, onClick: () -> Unit) {
     val accent = pageAccentOrPrimary()
     val filled = !isSelf && !user.followed
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(ButtonHeight)
+            .pressScale(interaction)
             .background(if (filled) accent else accent.copy(alpha = if (ExtendedTheme.colors.isNightMode) 0.2f else 0.12f), SmoothCornerShape.Capsule)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = interaction, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), role = Role.Button, onClick = onClick),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {

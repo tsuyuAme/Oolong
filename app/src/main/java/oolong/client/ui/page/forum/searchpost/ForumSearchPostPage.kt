@@ -3,9 +3,8 @@ package oolong.client.ui.page.forum.searchpost
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,10 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,12 +46,12 @@ import oolong.client.ui.page.main.SearchAtTopKey
 import oolong.client.ui.page.main.mainSearchPadding
 import oolong.client.ui.page.main.rememberOpenSearchState
 import oolong.client.ui.page.search.SearchHistoryList
-import oolong.client.ui.page.search.searchTabWidth
 import oolong.client.ui.widgets.compose.Container
 import oolong.client.ui.widgets.compose.EndPull
 import oolong.client.ui.widgets.compose.ErrorScreen
 import oolong.client.ui.widgets.compose.GlassScaffold
 import oolong.client.ui.widgets.compose.GlassStatusBar
+import oolong.client.ui.widgets.compose.GlassTabRow
 import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.LoadMoreEffect
 import oolong.client.ui.widgets.compose.LocalChromePadding
@@ -62,8 +59,6 @@ import oolong.client.ui.widgets.compose.MyBackHandler
 import oolong.client.ui.widgets.compose.PullRefresh
 import oolong.client.ui.widgets.compose.SearchThreadList
 import oolong.client.ui.widgets.compose.TabClickMenu
-import oolong.client.ui.widgets.compose.TabIndicator
-import oolong.client.ui.widgets.compose.TabRow
 import oolong.client.ui.widgets.compose.choiceMenuItems
 import oolong.client.ui.widgets.compose.loadMoreFooter
 import oolong.client.ui.widgets.compose.states.StateScreen
@@ -254,31 +249,25 @@ private fun ColumnScope.ForumSearchTabRow(
         true to R.string.title_search_tab_threads,
     )
     val selected = tabs.indexOfFirst { it.first == state.onlyThreads }
-    TabRow(
+    // On a glass capsule, as every page's tabs are; tapping the chosen tab again opens the orders
+    GlassTabRow(
         selectedTabIndex = selected,
-        indicator = { tabPositions -> TabIndicator(selectedTabIndex = selected, tabPositions = tabPositions) },
-        divider = {},
-        backgroundColor = Color.Transparent,
-        contentColor = ExtendedTheme.colors.topBarContent,
+        onSelect = { onSetOnlyThreads(tabs[it].first) },
+        // Across the page, as wide as the row of the field above it, the tabs sharing it
+        fill = true,
         modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .width(searchTabWidth(tabs.map { it.second }) * tabs.size),
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         tabs.forEach { (onlyThreads, text) ->
-            val chosen = onlyThreads == state.onlyThreads
             TabClickMenu(
-                selected = chosen,
-                // A glass tab fills the height it is given, and this row gives it all there is
-                modifier = Modifier.height(TabHeight),
+                selected = onlyThreads == state.onlyThreads,
                 onClick = { onSetOnlyThreads(onlyThreads) },
-                text = {
-                    Text(text = stringResource(id = text), fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
-                },
+                text = { Text(text = stringResource(id = text)) },
                 items = { choiceMenuItems(orders, state.order, onSetOrder) },
+                selectedContentColor = ExtendedTheme.colors.text,
+                unselectedContentColor = ExtendedTheme.colors.textSecondary,
             )
         }
     }
 }
-
-/** The main page's search tabs' height, which these take too. */
-private val TabHeight = 48.dp

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -59,20 +60,27 @@ internal fun ColumnScope.ThreadMenu(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The same icons as the switches in the top bar: the box filled, its letters cut out of
+            // it, when only the author's posts show; the order turned over for newest first
+            val colors = ExtendedTheme.colors
+            val cut = if (colors.background.alpha < 1f) colors.sheet else colors.background
             MenuTile(
                 text = stringResource(id = R.string.title_see_lz),
-                icon = Symbols.Person,
                 checked = seeLz,
                 role = Role.Switch,
                 onClick = { onEvent(ThreadEvent.SetSeeLz(!seeLz)) },
-            )
+            ) { tint ->
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(if (seeLz) LzIcon.BoxFill else LzIcon.Box, contentDescription = null, tint = tint)
+                    Icon(LzIcon.Letters, contentDescription = null, tint = if (seeLz) cut else tint)
+                }
+            }
             MenuTile(
                 text = stringResource(id = R.string.title_sort),
-                icon = Symbols.Sort,
                 checked = newestFirst,
                 role = Role.Switch,
                 onClick = { onEvent(ThreadEvent.ToggleSort) },
-            )
+            ) { tint -> SortIcon(flipped = newestFirst, tint = tint) }
             MenuTile(
                 text = stringResource(id = R.string.title_pure_read),
                 icon = Symbols.ChromeReaderMode,
@@ -128,6 +136,20 @@ private fun RowScope.MenuTile(
     role: Role = Role.Button,
     onClick: () -> Unit,
 ) {
+    MenuTile(text, checked, detail, enabled, role, onClick) { tint -> Icon(imageVector = icon, contentDescription = null, tint = tint) }
+}
+
+/** [MenuTile] drawing its own [icon] in the tint it is given. */
+@Composable
+private fun RowScope.MenuTile(
+    text: String,
+    checked: Boolean = false,
+    detail: String? = null,
+    enabled: Boolean = true,
+    role: Role = Role.Button,
+    onClick: () -> Unit,
+    icon: @Composable (tint: Color) -> Unit,
+) {
     val colors = ExtendedTheme.colors
     // Tinted, not filled, so the menu's glass shows through the tiles
     val rest = colors.text.copy(alpha = if (colors.isNightMode) TileTintNight else TileTint)
@@ -152,7 +174,7 @@ private fun RowScope.MenuTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = content)
+        icon(content)
         Text(text = text, style = TextStyles.footnote, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (detail != null) {
             Text(

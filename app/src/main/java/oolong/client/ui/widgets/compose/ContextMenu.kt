@@ -93,6 +93,7 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oolong.client.ui.common.navigation.PageOrigin
@@ -196,12 +197,37 @@ class ContextMenus internal constructor() {
         iconTint: Color = Color.Unspecified,
     ): Long {
         finger = null
+        // Asked again from the same button while it shrinks away, the menu grows back from where
+        // it is rather than vanishing and starting over
+        val current = request
+        if (current != null && closingId == current.id && preview == null && current.preview == null && current.anchor == anchor) {
+            closingId = null
+            reopened++
+            return current.id
+        }
         request = ContextMenuRequest(items, anchor, icon, iconTint, preview, ++shown)
         return shown
     }
 
+    /** Counts the times the menu on its way out was asked for again, for it to grow back. */
+    internal var reopened by mutableIntStateOf(0)
+        private set
+
     /** Whether menu [id] is still on screen, opening, open or closing. */
     fun isShowing(id: Long?): Boolean = id != null && request?.id == id
+
+    /** The menu on its way out, still drawn while it shrinks away. */
+    private var closingId by mutableStateOf<Long?>(null)
+
+    /**
+     * Whether menu [id] is opening or open, and not yet on its way out: what the control that
+     * opened it shows, so it turns back as soon as the menu starts to close.
+     */
+    fun isOpen(id: Long?): Boolean = isShowing(id) && closingId != id
+
+    internal fun closing(id: Long) {
+        closingId = id
+    }
 
     /** The finger that opened the menu moved to [position] in the window. */
     fun moveFinger(position: Offset) {
@@ -301,11 +327,13 @@ private fun ContextMenuOverlay(menus: ContextMenus, request: ContextMenuRequest,
     }
 
     // Closing runs it backwards: a button's menu shrinks into a drop first, which flies home
+    var closingJob by remember { mutableStateOf<Job?>(null) }
     fun dismiss() {
         if (closing) return
         closing = true
+        menus.closing(request.id)
         letGo = true
-        scope.launch {
+        closingJob = scope.launch {
             if (fromButton) {
                 val shrink = launch { grow.animateTo(0f, ShrinkSpring) }
                 delay(GrowDelay)
@@ -320,11 +348,24 @@ private fun ContextMenuOverlay(menus: ContextMenus, request: ContextMenuRequest,
         }
     }
 
+    // Asked for again while closing: it stops shrinking and grows back from where it is
+    val reopened = menus.reopened
+    LaunchedEffect(reopened) {
+        if (reopened == 0 || !closing) return@LaunchedEffect
+        closingJob?.cancel()
+        closingJob = null
+        closing = false
+        letGo = false
+        launch { move.animateTo(1f, MoveSpring) }
+        grow.animateTo(1f, Motion.morph(Motion.ProgressThreshold))
+    }
+
     // Opening a page out of the preview: it becomes the page, so the rest fades away around it,
     // and the overlay stays until the page has grown out of it
     fun handOff(origin: PageOrigin) {
         if (closing) return
         closing = true
+        menus.closing(request.id)
         scope.launch {
             launch { grow.animateTo(0f, Motion.dismiss(Motion.ProgressThreshold)) }
             origin.awaitOpened()

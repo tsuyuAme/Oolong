@@ -99,9 +99,11 @@ import oolong.client.ui.widgets.compose.ConfirmDialog
 import oolong.client.ui.widgets.compose.GlassScaffold
 import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.IconButton
+import oolong.client.ui.widgets.compose.LocalPressedByGlass
 import oolong.client.ui.widgets.compose.floatingGlass
 import oolong.client.ui.widgets.compose.mediaChromeColors
 import oolong.client.ui.widgets.compose.pageScroll
+import oolong.client.ui.widgets.compose.pressedByGlass
 import oolong.client.ui.widgets.compose.rememberDialogState
 import kotlin.math.abs
 import kotlin.math.max
@@ -305,7 +307,8 @@ private fun CancelButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.button,
         modifier = modifier
             .offset(x = -CancelRoom)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
+            // On the bar's glass, which answers the press
+            .clickable(interactionSource = null, indication = if (pressedByGlass()) null else PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .padding(horizontal = CancelRoom, vertical = 12.dp),
     )
 }
@@ -332,7 +335,7 @@ private fun UndoRedo(state: EditorState, vertical: Boolean = false) {
             Icon(imageVector = Symbols.Redo, contentDescription = stringResource(id = R.string.editor_redo))
         }
     }
-    val glass = Modifier.floatingGlass(SmoothCornerShape.Capsule, barButton = false)
+    val glass = Modifier.floatingGlass(SmoothCornerShape.Capsule, barButton = false, pressable = true)
     if (vertical) Column(modifier = glass) { buttons() } else Row(modifier = glass) { buttons() }
 }
 
@@ -928,9 +931,11 @@ private fun DeleteButton(state: EditorState, selection: Edit) {
             }
         },
     ) {
-        Box(modifier = Modifier.floatingGlass(SmoothCornerShape.Capsule, barButton = false)) {
-            IconButton(onClick = state::deleteSelection) {
-                Icon(imageVector = Symbols.Delete, contentDescription = stringResource(id = R.string.editor_delete), tint = ExtendedTheme.colors.text)
+        Box(modifier = Modifier.floatingGlass(SmoothCornerShape.Capsule, barButton = false, pressable = true)) {
+            CompositionLocalProvider(LocalPressedByGlass provides true) {
+                IconButton(onClick = state::deleteSelection) {
+                    Icon(imageVector = Symbols.Delete, contentDescription = stringResource(id = R.string.editor_delete), tint = ExtendedTheme.colors.text)
+                }
             }
         }
     }

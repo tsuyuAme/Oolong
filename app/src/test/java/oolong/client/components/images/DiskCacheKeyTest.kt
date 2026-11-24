@@ -8,7 +8,7 @@ class DiskCacheKeyTest {
     @Test
     fun `drops the expiring signature and keeps the rest of the address`() {
         assertEquals(
-            "https://tiebapic.baidu.com/forum/pic/item/a.jpg?x=1",
+            "v2:https://tiebapic.baidu.com/forum/pic/item/a.jpg?x=1",
             diskCacheKey("https://tiebapic.baidu.com/forum/pic/item/a.jpg?tbpicau=2026-11-13-05_0fb7&x=1"),
         )
     }

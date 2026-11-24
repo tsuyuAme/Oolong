@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,7 @@ import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.widgets.compose.Avatar
 import oolong.client.ui.widgets.compose.OwnAvatar
 import oolong.client.ui.widgets.compose.Sizes
@@ -419,14 +421,16 @@ private val WarnColor = Color(0xFFD9822B)
 @Composable
 private fun RowButton(text: String, onClick: () -> Unit) {
     val colors = ExtendedTheme.colors
+    val press = remember { MutableInteractionSource() }
     Text(
         text = text,
         fontSize = 12.sp,
         color = colors.text,
         maxLines = 1,
         modifier = Modifier
+            .pressScale(press)
             .background(colors.sheet, ChipShape)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(ChipShape), role = Role.Button, onClick = onClick)
+            .clickable(interactionSource = press, indication = PressFeedback.overlay(ChipShape), role = Role.Button, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
@@ -441,13 +445,15 @@ private fun ToggleChip(
     val colors = ExtendedTheme.colors
     val background = if (checked) colors.text else colors.chip
     val content = if (checked) colors.sheet else colors.textSecondary
+    val press = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .height(26.dp)
+            .pressScale(press)
             .background(background, ChipShape)
             .toggleable(
                 value = checked,
-                interactionSource = null,
+                interactionSource = press,
                 indication = PressFeedback.overlay(ChipShape),
                 role = Role.Checkbox,
                 onValueChange = onCheckedChange,

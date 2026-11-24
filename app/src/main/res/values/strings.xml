@@ -209,6 +209,10 @@
     <string name="toast_preparing_share_pic">正在下载图片…</string>
     <string name="toast_save_pic_failed">无法保存图片</string>
     <string name="toast_share_pic_failed">无法分享图片</string>
+    <string name="toast_share_unavailable">无法分享</string>
+    <string name="toast_newest_first">最新在前</string>
+    <string name="toast_oldest_first">最早在前</string>
+    <string name="toast_all_posts">查看全部</string>
     <string name="title_translucent_theme_blur">模糊</string>
     <string name="title_select_color">强调色</string>
     <string name="title_custom_color">自定义</string>
@@ -825,6 +829,7 @@
     <string name="summary_photo_picker_not_supported">当前 Android 版本不支持照片选择器</string>
     <string name="title_picker_all_images">全部图片</string>
     <string name="title_picker_unnamed_album">其他</string>
+    <string name="title_picker_favorites">收藏</string>
     <string name="title_picker_empty">没有找到图片</string>
     <string name="title_picker_no_access">无法读取照片</string>
     <string name="tip_picker_no_access">允许 Oolong 访问照片后，才能从相册里选择图片</string>
@@ -833,6 +838,16 @@
     <string name="tip_picker_selected_only">只显示你允许访问的照片</string>
     <string name="button_picker_select_more">选择更多</string>
     <string name="toast_picker_limit">最多选择 %d 张图片</string>
+    <string name="button_picker_add">添加 %1$d 张</string>
+    <string name="button_picker_use">使用</string>
+    <string name="button_picker_add_this">添加这张</string>
+    <string name="button_picker_use_this">使用这张</string>
+    <string name="tag_picker_long">长图</string>
+    <string name="tag_picker_edited">已编辑</string>
+    <string name="button_picker_take_photo">拍照</string>
+    <string name="desc_picker_select">选择</string>
+    <string name="toast_picker_no_camera">无法打开相机</string>
+    <string name="title_picker_index">%1$d / %2$d</string>
     <string name="desc_show">显示</string>
     <string name="desc_input_color">手动输入颜色</string>
     <string name="release_to_load_latest_posts">松开加载最新回复</string>

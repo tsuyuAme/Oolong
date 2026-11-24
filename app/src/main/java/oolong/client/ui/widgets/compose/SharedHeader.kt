@@ -263,6 +263,19 @@ private fun LazyListState.alignWithHeader(moved: Int, away: Int) {
     if (target != scrolled) requestScrollToItem(0, target)
 }
 
+/**
+ * Takes [list] back to its start under the header as it is now, for a list about to stand for
+ * something else, such as another filter: just under the header while any of it shows, else just
+ * under the pinned rows, the header kept out of view.
+ */
+fun SharedHeaderState.toListStart(list: LazyListState) {
+    // Held there too, or the list, put in line again once its items come, goes as far as a
+    // header that has left the screen, which takes its first item under the bar
+    val start = collapsed
+    held = start
+    list.requestScrollToItem(0, start)
+}
+
 /** [base], with [extra] more room above. */
 private class PaddingAbove(private val base: PaddingValues, private val extra: () -> Dp) : PaddingValues {
     override fun calculateTopPadding(): Dp = base.calculateTopPadding() + extra()

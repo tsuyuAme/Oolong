@@ -83,11 +83,13 @@ fun MainPage(
     LaunchedEffect(dragged) { if (dragged) swiping = true }
     val currentItems by rememberUpdatedState(navigationItems)
     LaunchedEffect(pagerState) {
-        // A swipe picks the tab it settles on
+        // A swipe picks the tab it settles on. The page in view, not settledPage, which may not
+        // have caught up yet: picked wrong, the tab left could not be picked again from the bar
         snapshotFlow { pagerState.isScrollInProgress }.collect { scrolling ->
-            if (!scrolling && swiping) {
+            if (!scrolling) {
+                // Whether or not the drag was seen in time: a quick one can stop before it is
                 swiping = false
-                currentItems.getOrNull(pagerState.settledPage)?.let { tabs.selected = it.id }
+                currentItems.getOrNull(pagerState.currentPage)?.let { tabs.selected = it.id }
             }
         }
     }
@@ -147,7 +149,11 @@ fun MainPage(
                 if (showBottomNavigation) CapTextScale(max = 1f) {
                     FloatingNavBar(
                         currentPosition = pagerState.currentPage,
-                        onChangePosition = { tabs.selected = navigationItems[it].id },
+                        onChangePosition = { index ->
+                            tabs.selected = navigationItems[index].id
+                            // Also when the tab was already the picked one but the pages show another
+                            if (pagerState.currentPage != index) coroutineScope.launch { pagerState.scrollToPage(index) }
+                        },
                         onReselected = onReselected,
                         navigationItems = navigationItems,
                         collapsedFraction = { navBarCompact.value },

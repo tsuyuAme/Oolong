@@ -4,6 +4,10 @@
         <cache-path
             name="shareCache"
             path=".shareTemp" />
+        <!-- Photos taken and pictures edited in the picker, given back to the page that asked -->
+        <cache-path
+            name="picker"
+            path="picker/" />
         <!-- The downloaded update, for the system's installer -->
         <cache-path
             name="update"

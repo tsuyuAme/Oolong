@@ -154,10 +154,17 @@ fun ThreadRoute(
             ThreadEvent.LoadMore -> viewModel.loadMore()
             ThreadEvent.LoadLatest -> viewModel.loadLatest()
             ThreadEvent.LoadPrevious -> viewModel.loadPrevious()
-            is ThreadEvent.SetSeeLz -> viewModel.setSeeLz(event.seeLz)
-            ThreadEvent.ToggleSort -> viewModel.setSort(
-                if (state.query.sort == ThreadSort.NewestFirst) ThreadSort.OldestFirst else ThreadSort.NewestFirst
-            )
+            is ThreadEvent.SetSeeLz -> {
+                if (event.seeLz != state.query.seeLz) listState.keepRepliesStart()
+                viewModel.setSeeLz(event.seeLz)
+            }
+
+            ThreadEvent.ToggleSort -> {
+                listState.keepRepliesStart()
+                viewModel.setSort(
+                    if (state.query.sort == ThreadSort.NewestFirst) ThreadSort.OldestFirst else ThreadSort.NewestFirst
+                )
+            }
 
             ThreadEvent.OpenReader -> navigator.navigate(
                 ReaderKey(state.query.threadId, thread?.forum?.id ?: state.query.forumId, floor = viewModel.readingFloor())

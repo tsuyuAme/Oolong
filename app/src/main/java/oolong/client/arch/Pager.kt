@@ -95,13 +95,18 @@ class Pager<K : Any, T>(
         refresh()
     }
 
-    /** Loads the list again from [from], which also serves to jump to another page. */
-    fun refresh(from: K = initialKey) {
+    /**
+     * Loads the list again from [from], which also serves to jump to another page. With [clear],
+     * the items go at once, for a list that stands for something else now, such as another filter:
+     * the old ones would pass for the answer while it loads.
+     */
+    fun refresh(from: K = initialKey, clear: Boolean = false) {
         refreshJob?.cancel()
         appendJob?.cancel()
         prependJob?.cancel()
         _state.update {
-            it.copy(refresh = LoadStatus.Loading, append = LoadStatus.Idle, prepend = LoadStatus.Idle)
+            val loading = it.copy(refresh = LoadStatus.Loading, append = LoadStatus.Idle, prepend = LoadStatus.Idle)
+            if (clear) loading.copy(items = persistentListOf(), hasMore = false, hasPrevious = false) else loading
         }
         refreshJob = scope.launch {
             val page = loadOrNull(from, refreshing = true) { error -> copy(refresh = LoadStatus.Error(error)) }

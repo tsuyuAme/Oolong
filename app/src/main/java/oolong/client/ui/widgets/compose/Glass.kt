@@ -2,16 +2,20 @@ package oolong.client.ui.widgets.compose
 
 import android.content.res.Configuration
 import android.os.Build
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
@@ -19,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.BiasAlignment
@@ -64,9 +69,13 @@ import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.RefractionProfile
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import oolong.client.dataStore
 import oolong.client.ui.common.theme.compose.ExtendedColors
 import oolong.client.ui.common.theme.compose.ExtendedTheme
@@ -75,6 +84,7 @@ import oolong.client.ui.common.theme.compose.ShadowAmbient
 import oolong.client.ui.common.theme.compose.ShadowSpot
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.utils.ThemeUtil
+import kotlin.math.max
 
 /**
  * How floating chrome (bars, pills) is rendered. Every tier lays out identically; only the
@@ -391,16 +401,30 @@ internal class BarButtons(val shown: () -> Float)
 internal val LocalBarButtons = staticCompositionLocalOf<BarButtons?> { null }
 
 /**
- * Background for a floating, rounded piece of chrome such as the navigation pill. Given the
- * [interactionSource] of the control it backs, its glass answers presses itself, and it fades
- * by [alpha] where its owner dissolves what is on it apart from it. The content under it is frosted all over, by [FloatingBlur] at the default clarity, and veiled in the page's
- * colour only on the frosted side of it.
+ * Whether what is drawn here sits on a piece of floating glass that answers presses as one piece,
+ * such as a group of actions over a picture; its buttons then leave their own press feedback to it.
+ */
+internal val LocalPressedByGlass = staticCompositionLocalOf { false }
+
+/** Whether the glass this sits on answers its presses, so a button on it shows none of its own. */
+@Composable
+internal fun pressedByGlass(): Boolean = LocalBarButtons.current != null || LocalPressedByGlass.current
+
+/**
+ * Background for a floating, rounded piece of chrome such as the navigation pill. It fades by
+ * [alpha] where its owner dissolves what is on it apart from it. The content under it is frosted
+ * all over, by [FloatingBlur] at the default clarity, and veiled in the page's colour only on the
+ * frosted side of it.
  *
- * As a [barButton] in a floating top bar's row, the glass and its shadow come in as content
- * scrolls under the bar, so at the top of a page the button is bare, and the glass answers a press
- * as one piece: it swells a little towards the finger and settles back, lit from where it was
- * touched. Its buttons then leave their own press feedback to it. A control with its own, such as
- * a tab row, passes false.
+ * A [pressable] piece answers a press anywhere on it as one piece (design-system.md §8.1): it
+ * swells a little towards the finger and settles back, lit where it was touched, or veiled where
+ * the material cannot light. What is on it leaves its own press feedback to it. On a classic bar,
+ * which is part of the page, it is pressed in as anything on the page is.
+ *
+ * As a [barButton] in a floating top bar's row it is always pressable, and its glass and shadow
+ * come in as content scrolls under the bar, so at the top of a page the button is bare; a press
+ * brings its glass up for as long as it lasts. A control with its own feedback, such as a tab row,
+ * passes false.
  *
  * As a [lensTarget], it is also marked as one, for glass drawn over it, such as the bubble lifting
  * off the navigation pill; its own glass then leaves it out.
@@ -409,13 +433,13 @@ internal val LocalBarButtons = staticCompositionLocalOf<BarButtons?> { null }
 fun Modifier.floatingGlass(
     shape: Shape,
     barButton: Boolean = true,
-    interactionSource: MutableInteractionSource? = null,
+    pressable: Boolean = false,
     alpha: Float = 1f,
     lensTarget: Boolean = false,
 ): Modifier = if (lensTarget) {
-    lensTarget().floatingGlassOf(shape, barButton, interactionSource, alpha, onLensTarget = true)
+    lensTarget().floatingGlassOf(shape, barButton, pressable, alpha, onLensTarget = true)
 } else {
-    floatingGlassOf(shape, barButton, interactionSource, alpha, onLensTarget = false)
+    floatingGlassOf(shape, barButton, pressable, alpha, onLensTarget = false)
 }
 
 @OptIn(ExperimentalHazeApi::class)
@@ -423,13 +447,16 @@ fun Modifier.floatingGlass(
 private fun Modifier.floatingGlassOf(
     shape: Shape,
     barButton: Boolean,
-    interactionSource: MutableInteractionSource?,
+    pressable: Boolean,
     alpha: Float,
     onLensTarget: Boolean,
 ): Modifier {
-    // On a classic bar the band is the ground
-    if (LocalOnClassicBar.current || alpha <= 0f) return this
+    val press = rememberGlassPress()
+    // On a classic bar the band is the ground, and what is pressed on it is pressed in
+    if (LocalOnClassicBar.current) return if (pressable) pressedIn(press, shape) else this
+    if (alpha <= 0f) return this
     val bar = if (barButton) LocalBarButtons.current else null
+    val answers = pressable || bar != null
     val source = currentGlassSource()
     val input = if (onLensTarget) source?.belowLensTargets else source?.input
     val tier = if (source == null) GlassTier.Solid else currentGlassTier()
@@ -438,17 +465,13 @@ private fun Modifier.floatingGlassOf(
     // A row with nothing in it, as a bar without actions, has no glass: at no size its edge
     // would still draw as a dot
     var empty by remember { mutableStateOf(false) }
-    val shown: () -> Float = if (bar == null) FullyShown else remember(bar) { { if (empty) 0f else bar.shown() } }
+    // A bar button's glass comes in with the scroll, and with a press while it lasts
+    val shown: () -> Float = if (bar == null) FullyShown else remember(bar, press) {
+        { if (empty) 0f else max(bar.shown(), press.progress.value.coerceIn(0f, 1f)) }
+    }
     val edge = if (colors.isNightMode) Color.White.copy(alpha = 0.10f)
     else Color.Black.copy(alpha = 0.06f)
-    // A bar button swells under the finger and settles back, with the light where it was touched
-    var pressed by remember { mutableStateOf(false) }
-    var pressedAt by remember { mutableStateOf(Offset.Unspecified) }
-    val press by animateFloatAsState(
-        targetValue = if (pressed) 1f else 0f,
-        animationSpec = if (pressed) Motion.press() else Motion.release(),
-        label = "barButtonPress",
-    )
+    val swell: Modifier = if (answers) Modifier.swellUnder(press) else Modifier
     val chrome = if (bar == null) {
         // Glass stands off the page by its own light and refraction, so it casts no shadow; frosted
         // chrome has only a hairline and keeps its, while opaque chrome lies flat, as most of the
@@ -458,44 +481,32 @@ private fun Modifier.floatingGlassOf(
             // Cuts the glass, drawn with plain round corners, and what is on it, such as a
             // press's veil, to the shape. A mask rather than a clip: some GPUs leave the edge of
             // a clip to a path jagged
-            maskTo(shape)
+            then(swell).maskTo(shape)
         } else {
             // Faded by a layer that is always there: one added only while fading would change the
             // modifiers around the blur as it updates, which froze the page
-            graphicsLayer { this.alpha = alpha }
+            then(swell)
+                .graphicsLayer { this.alpha = alpha }
                 .shadow(elevation = if (tier == GlassTier.Blur) FloatingElevation else 0.dp, shape = shape, clip = false, ambientColor = ShadowAmbient, spotColor = ShadowSpot)
         }
     } else {
-        onSizeChanged { empty = it.width == 0 || it.height == 0 }.pointerInput(Unit) {
-            // Watches without taking: the buttons inside still get their clicks
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                pressedAt = down.position
-                pressed = true
-                do {
-                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                } while (event.changes.any { it.pressed })
-                pressed = false
+        onSizeChanged { empty = it.width == 0 || it.height == 0 }
+            .then(swell)
+            .graphicsLayer {
+                // Only frosted chrome casts one, as other floating chrome
+                shadowElevation = if (tier == GlassTier.Blur) FloatingElevation.toPx() * shown() else 0f
+                this.shape = shape
+                ambientShadowColor = ShadowAmbient
+                spotShadowColor = ShadowSpot
             }
-        }.graphicsLayer {
-            val scale = 1f + PressSwell * press
-            scaleX = scale
-            scaleY = scale
-            transformOrigin = if (pressedAt.isSpecified && size.width > 0f) {
-                TransformOrigin(pressedAt.x / size.width, pressedAt.y / size.height)
-            } else TransformOrigin.Center
-            // Only frosted chrome casts one, as other floating chrome
-            shadowElevation = if (tier == GlassTier.Blur) FloatingElevation.toPx() * shown() else 0f
-            this.shape = shape
-            ambientShadowColor = ShadowAmbient
-            spotShadowColor = ShadowSpot
-        }
     }
-    // Where the glass does not light up a press itself, or is not in yet, a veil shows it
-    val veil = ExtendedTheme.colors.text
-    val pressVeil: Modifier = if (bar == null) Modifier else Modifier.drawBehind {
-        val lit = if (tier == GlassTier.Glass && !colors.isTranslucent) 1f - shown() else 1f
-        val alpha = PressVeil * press * lit
+    // Where the glass cannot light up a press, a veil shows it. Light barely shows on light glass,
+    // so there the veil helps it at half strength
+    val lights = tier == GlassTier.Glass && !colors.isTranslucent
+    val veilShare = if (!lights) 1f else if (colors.isNightMode) 0f else LitVeilShare
+    val veil = colors.text
+    val pressVeil: Modifier = if (!answers || veilShare == 0f) Modifier else Modifier.drawBehind {
+        val alpha = PressVeil * veilShare * press.progress.value.coerceIn(0f, 1f)
         if (alpha > 0f) drawOutline(shape.createOutline(size, layoutDirection, this), veil.copy(alpha = alpha))
     }
     val edged: Modifier = if (bar == null) Modifier.border(0.5.dp, edge, shape) else Modifier.drawBehind {
@@ -512,7 +523,7 @@ private fun Modifier.floatingGlassOf(
     }
     return when (tier) {
         GlassTier.Glass -> {
-            val style = remember(shape, colors.background, frost, bar, interactionSource != null, alpha) {
+            val style = remember(shape, colors.background, frost, bar, answers, alpha, shown) {
                 // Regular is the built-in material for surfaces that carry labels.
                 GlassStyle.regular.then {
                     shape(shape.glassShape())
@@ -524,19 +535,10 @@ private fun Modifier.floatingGlassOf(
                     if (frost > 1f) tint(colors.background.copy(alpha = FrostedFloatingTint * (frost - 1f) / (MostFrost - 1f)))
                     // Faded by its style, apart from what is on it
                     if (alpha < 1f) alpha(alpha)
-                    if (bar == null && interactionSource != null) {
-                        // Pressed, the glass lights up and gives a little, by its own response
-                        pressed {
-                            animate(toSpec = Motion.press(), fromSpec = Motion.release()) {
-                                lightingIntensity(1f)
-                                whitePointDelta(PressBrighten)
-                                scale(PressedGlassScale)
-                            }
-                        }
-                    }
-                    if (bar != null) {
-                        // Read here, the glass follows the scroll without being rebuilt
-                        alpha(shown())
+                    // Read here, the glass follows the scroll without being rebuilt
+                    if (bar != null) alpha(shown())
+                    if (answers) {
+                        // Pressed, the glass lights up where it was touched
                         pressed {
                             animate(toSpec = Motion.press(), fromSpec = Motion.release()) {
                                 lightingIntensity(1f)
@@ -550,14 +552,14 @@ private fun Modifier.floatingGlassOf(
                 .hazeGlass(
                     input = input!!,
                     style = style,
-                    interactionSource = if (bar == null) interactionSource else null,
+                    interactionSource = if (answers) press.interactions else null,
                     interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
                 )
                 .then(pressVeil)
         }
 
         GlassTier.Blur -> {
-            val style = remember(colors.background, frost, bar) {
+            val style = remember(colors.background, frost, bar, shown) {
                 HazeBlurStyle {
                     backgroundColor(colors.background)
                     blurRadius(20.dp * frost)
@@ -592,39 +594,157 @@ private fun Modifier.floatingGlassOf(
 /**
  * [floatingGlass] for a control floating over a picture or video: clear glass, which leaves what
  * is under it nearly as it is, over a dimming layer that keeps white icons readable on a bright
- * picture. Below [GlassTier.Glass] it is [floatingGlass].
+ * picture. A [pressable] one swells and lights up under a press, as floating glass does. Below
+ * [GlassTier.Glass] it is [floatingGlass].
  */
 @OptIn(ExperimentalHazeApi::class)
 @Composable
-fun Modifier.mediaGlass(shape: Shape, interactionSource: MutableInteractionSource? = null): Modifier {
+fun Modifier.mediaGlass(shape: Shape, pressable: Boolean = false): Modifier {
     val source = currentGlassSource()
     if (source == null || currentGlassTier() != GlassTier.Glass) {
-        return floatingGlass(shape, barButton = false, interactionSource = interactionSource)
+        return floatingGlass(shape, barButton = false, pressable = pressable)
     }
-    val style = remember(shape, interactionSource != null) {
+    val press = rememberGlassPress()
+    val style = remember(shape, pressable) {
         GlassStyle.clear.then {
             shape(shape.glassShape())
             backgroundColor(Color.Black)
             tint(MediaDim)
             lightPosition(LightAbove)
-            if (interactionSource != null) {
+            if (pressable) {
                 pressed {
                     animate(toSpec = Motion.press(), fromSpec = Motion.release()) {
                         lightingIntensity(1f)
                         whitePointDelta(PressBrighten)
-                        scale(PressedGlassScale)
                     }
                 }
             }
         }
     }
-    return maskTo(shape).hazeGlass(
-        input = source.input,
-        style = style,
-        interactionSource = interactionSource,
-        interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
-    )
+    return then(if (pressable) Modifier.swellUnder(press) else Modifier)
+        .maskTo(shape)
+        .hazeGlass(
+            input = source.input,
+            style = style,
+            interactionSource = if (pressable) press.interactions else null,
+            interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+        )
 }
+
+/**
+ * The press on a piece of floating glass, followed from the touches on anything in it: its
+ * progress, 0 at rest and 1 fully pressed, where the finger went down, and the same as
+ * interactions, for the glass's own light.
+ */
+@Stable
+private class GlassPress(private val scope: CoroutineScope) {
+    val progress = Animatable(0f, visibilityThreshold = Motion.ProgressThreshold)
+    var at by mutableStateOf(Offset.Unspecified)
+        private set
+    val interactions = MutableInteractionSource()
+    private var current: PressInteraction.Press? = null
+    private var pressing: Job? = null
+
+    fun down(position: Offset) {
+        at = position
+        val press = PressInteraction.Press(position)
+        current = press
+        interactions.tryEmit(press)
+        pressing = scope.launch { progress.animateTo(1f, Motion.press()) }
+    }
+
+    fun up() {
+        val press = current ?: return
+        current = null
+        val job = pressing
+        scope.launch {
+            // A quick tap still shows most of its press
+            withTimeoutOrNull(MinPressMillis) { job?.join() }
+            interactions.emit(PressInteraction.Release(press))
+            progress.animateTo(0f, Motion.release())
+        }
+    }
+}
+
+@Composable
+private fun rememberGlassPress(): GlassPress {
+    val scope = rememberCoroutineScope()
+    return remember(scope) { GlassPress(scope) }
+}
+
+/** Follows the touches on this and anything in it into [press], without taking them. */
+private fun Modifier.watchPresses(press: GlassPress): Modifier = pointerInput(press) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        press.down(down.position)
+        try {
+            do {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+            } while (event.changes.any { it.pressed })
+        } finally {
+            press.up()
+        }
+    }
+}
+
+/** Swells this towards where [press] went down, by [PressSwell] at full press. */
+private fun Modifier.swellUnder(press: GlassPress): Modifier = watchPresses(press).graphicsLayer {
+    val scale = 1f + PressSwell * press.progress.value
+    scaleX = scale
+    scaleY = scale
+    val at = press.at
+    transformOrigin = if (at.isSpecified && size.width > 0f) {
+        TransformOrigin(at.x / size.width, at.y / size.height)
+    } else TransformOrigin.Center
+}
+
+/**
+ * The press of floating glass for chrome drawn without its material, such as a plain search field
+ * standing in for glass: it swells towards the finger and a veil of the content colour covers its
+ * [shape]. Apply it before the control's background, which it then covers too.
+ */
+@Composable
+fun Modifier.floatingPress(shape: Shape): Modifier {
+    val press = rememberGlassPress()
+    val veil = ExtendedTheme.colors.text
+    return swellUnder(press).drawWithContent {
+        drawContent()
+        val alpha = PressVeil * press.progress.value.coerceIn(0f, 1f)
+        if (alpha > 0f) drawOutline(shape.createOutline(size, layoutDirection, this), veil.copy(alpha = alpha))
+    }
+}
+
+/**
+ * Pressed in, as a control on the page is (design-system.md §8.1): its edges move in by
+ * [PressedInset] and a veil of the content colour covers its [shape].
+ */
+@Composable
+private fun Modifier.pressedIn(press: GlassPress, shape: Shape): Modifier {
+    val veil = LocalContentColor.current
+    return watchPresses(press)
+        .graphicsLayer {
+            val p = press.progress.value
+            if (p != 0f) {
+                val pressedScale = (1f - 2 * PressedInset.toPx() / size.maxDimension).coerceIn(0.9f, 0.985f)
+                val s = 1f - (1f - pressedScale) * p
+                scaleX = s
+                scaleY = s
+            }
+        }
+        .drawBehind {
+            val alpha = PressVeil * press.progress.value.coerceIn(0f, 1f)
+            if (alpha > 0f) drawOutline(shape.createOutline(size, layoutDirection, this), veil.copy(alpha = alpha))
+        }
+}
+
+/** How far a control on the page moves its edges in when pressed. */
+private val PressedInset = 2.5.dp
+
+/** How long a tap shows its press before letting go. */
+private const val MinPressMillis = 100L
+
+/** How much of the veil a press puts on light glass, besides lighting it. */
+private const val LitVeilShare = 0.5f
 
 /** The dimming layer under clear glass over media, as dark as a bright picture needs for white on it. */
 private val MediaDim = Color.Black.copy(alpha = 0.35f)
@@ -634,16 +754,13 @@ private val FullyShown: () -> Float = { 1f }
 /** How high floating glass stands over the content, by its shadow. */
 private val FloatingElevation = 12.dp
 
-/** How much a bar button's glass swells under a press. */
+/** How much floating glass swells under a press. */
 private const val PressSwell = 0.06f
 
-/** How much a press brightens a bar button's glass, besides lighting it where it was touched. */
+/** How much a press brightens floating glass, besides lighting it where it was touched. */
 private const val PressBrighten = 0.06f
 
-/** How much a pressed glass control gives, about the 2.5dp in from its edges a pressed control shrinks by. */
-private const val PressedGlassScale = 0.92f
-
-/** The veil a press puts on a bar button where its glass does not light up. */
+/** The veil a press puts on floating glass where it does not light up. */
 private const val PressVeil = 0.08f
 
 /**
@@ -732,13 +849,17 @@ fun Modifier.lensTarget(): Modifier {
 
 /**
  * A clear glass lens over chrome marked with [lensTarget], such as the bubble that lifts off the
- * navigation pill while it is pressed. Draws nothing below [GlassTier.Glass].
+ * navigation pill while it is pressed. Below [GlassTier.Glass] it is a veil in its shape.
  */
 @OptIn(ExperimentalHazeApi::class)
 @Composable
 fun Modifier.glassLens(shape: Shape, optics: GlassOptics = UnblurredClearOptics): Modifier {
     val source = currentGlassSource()
-    if (source == null || currentGlassTier() != GlassTier.Glass) return this
+    if (source == null || currentGlassTier() != GlassTier.Glass) {
+        // Without glass to look through, a veil the lens's shape follows the finger instead
+        val veil = ExtendedTheme.colors.text.copy(alpha = PressVeil)
+        return drawBehind { drawOutline(shape.createOutline(size, layoutDirection, this), veil) }
+    }
     val background = ExtendedTheme.colors.background
     val style = remember(shape, background, optics) {
         GlassStyle.clear.then {
@@ -771,6 +892,13 @@ private val UnblurredClearOptics = GlassOptics(
     blurRadius = OpticalSizeValue.Fixed(0.dp),
     refractionDetailIntensity = 0.76f,
 )
+
+/**
+ * Whether [glassLens] here is clear glass that can lift off and grow; otherwise it is a veil,
+ * which should keep to the size of what was pressed.
+ */
+@Composable
+fun isLensGlass(): Boolean = currentGlassSource() != null && currentGlassTier() == GlassTier.Glass
 
 /** Whether glass is drawn: the device supports it and reduce transparency is off. */
 @Composable

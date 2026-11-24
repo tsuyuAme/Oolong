@@ -180,8 +180,9 @@ fun GlassTabRow(
         if (!holding) lensActive = false
     }
     val inset = with(LocalDensity.current) { TabInset.roundToPx() }
-    // As much as the navigation bar's lens outgrows its item
-    val growth: (Float) -> Float = { it * (LensScale - 1f) }
+    // As much as the navigation bar's lens outgrows its item, the same on both sides: a wide tab
+    // grown by its width would reach far past the capsule
+    val growth = with(LocalDensity.current) { (GlassTabRowHeight - TabInset * 2).toPx() * (LensScale - 1f) }
     val lensOptics = remember { liquidLensOptics((GlassTabRowHeight - TabInset * 2) * LensScale) }
 
     Box(modifier = modifier.height(GlassTabRowHeight)) {
@@ -313,18 +314,17 @@ fun GlassTabRow(
                         .offset {
                             if (spans.starts.isEmpty()) return@offset IntOffset.Zero
                             val (start, width) = spans.at(lens.value)
-                            val tabHeight = GlassTabRowHeight.toPx() - inset * 2
                             IntOffset(
-                                (inset + start - scroll.value - growth(width) * held / 2).roundToInt(),
-                                (inset - growth(tabHeight) * held / 2).roundToInt(),
+                                (inset + start - scroll.value - growth * held / 2).roundToInt(),
+                                (inset - growth * held / 2).roundToInt(),
                             )
                         }
                         .layout { measurable, _ ->
                             if (spans.starts.isEmpty()) return@layout layout(0, 0) {}
                             val (_, width) = spans.at(lens.value)
                             val tabHeight = GlassTabRowHeight.toPx() - inset * 2
-                            val w = (width + growth(width) * held).roundToInt()
-                            val h = (tabHeight + growth(tabHeight) * held).roundToInt()
+                            val w = (width + growth * held).roundToInt()
+                            val h = (tabHeight + growth * held).roundToInt()
                             val placeable = measurable.measure(Constraints.fixed(w, h))
                             layout(w, h) { placeable.place(0, 0) }
                         }
@@ -335,8 +335,10 @@ fun GlassTabRow(
         }
     }
 
-    // Brings the chosen tab to the middle of the capsule, as far as the ends allow
-    LaunchedEffect(selectedTabIndex) {
+    // Brings the chosen tab to the middle of the capsule, as far as the ends allow. Tabs sharing
+    // the width don't scroll: their scroll state, attached to nothing, would take any value, which
+    // the lens's place then counts as scrolled
+    if (!fill) LaunchedEffect(selectedTabIndex) {
         // Laid out by the next frame, also when the row first appears
         withFrameNanos { }
         if (selectedTabIndex !in spans.starts.indices) return@LaunchedEffect

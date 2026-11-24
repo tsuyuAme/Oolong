@@ -20,7 +20,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,8 +68,8 @@ import oolong.client.ui.widgets.compose.GlassTabRow
 import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.MenuIconButton
 import oolong.client.ui.widgets.compose.MyBackHandler
+import oolong.client.ui.widgets.compose.TextButton
 import oolong.client.ui.widgets.compose.floatingGlass
-import oolong.client.ui.widgets.compose.isGlassAvailable
 import oolong.client.ui.widgets.compose.rememberDialogState
 
 @Composable
@@ -286,7 +285,6 @@ fun HistoryScreen(
 /** A glass capsule floating at the bottom that deletes the [count] visits chosen. */
 @Composable
 private fun DeleteSelectedButton(count: Int, onClick: () -> Unit) {
-    val glass = isGlassAvailable()
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         contentAlignment = Alignment.BottomCenter,
@@ -301,12 +299,11 @@ private fun DeleteSelectedButton(count: Int, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .then(if (glass) Modifier else Modifier.pressScale(interactionSource))
-                .floatingGlass(Corners.full, interactionSource = interactionSource)
+                .floatingGlass(Corners.full, pressable = count > 0)
                 .clickable(
                     interactionSource = interactionSource,
-                    // Glass answers the press itself
-                    indication = if (glass) null else PressFeedback.Overlay,
+                    // The glass answers the press itself
+                    indication = null,
                     enabled = count > 0,
                     role = Role.Button,
                     onClick = onClick,

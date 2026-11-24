@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -523,7 +524,7 @@ fun HomeScreen(
 ) {
     // Forum names don't fit two to a row once text is larger than the bars allow
     val single = listSingle || LocalTextScale.current > TextScale.ChromeMax
-    val gridCells = if (single) GridCells.Fixed(1) else GridCells.Adaptive(180.dp)
+    val gridCells = if (single) GridCells.Fixed(1) else ForumGridCells
     val forums = state.forums
     val pinned = state.pinned
     val showHistoryForum = showHistory && state.visited.isNotEmpty()
@@ -804,3 +805,22 @@ private const val RecentForumsKey = "HistoryForums"
 private val RecentForumsGuideKey = booleanPreferencesKey("recentForumsGuideShown")
 private val GuidePeek = 44.dp
 private const val GuideDelay = 600L
+
+/**
+ * The followed forums two to a row or more: one more for every 180dp, and two already on a narrow
+ * phone, as long as each gets 150dp. Only narrower than that one to a row.
+ */
+private object ForumGridCells : GridCells {
+    override fun Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        val count = when {
+            availableSize + spacing >= 2 * (180.dp.roundToPx() + spacing) ->
+                (availableSize + spacing) / (180.dp.roundToPx() + spacing)
+            availableSize + spacing >= 2 * (150.dp.roundToPx() + spacing) -> 2
+            else -> 1
+        }
+        val gaps = spacing * (count - 1)
+        val size = (availableSize - gaps) / count
+        val rest = (availableSize - gaps) % count
+        return List(count) { size + if (it < rest) 1 else 0 }
+    }
+}

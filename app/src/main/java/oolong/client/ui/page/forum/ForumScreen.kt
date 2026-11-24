@@ -59,6 +59,7 @@ import oolong.client.ui.widgets.compose.rememberSharedHeaderState
 import oolong.client.ui.widgets.compose.sharedHeaderPinned
 import oolong.client.ui.widgets.compose.states.DefaultErrorScreen
 import oolong.client.ui.widgets.compose.states.StateScreen
+import oolong.client.ui.widgets.compose.toListStart
 import oolong.client.ui.widgets.compose.underSharedHeader
 import oolong.client.utils.appPreferences
 
@@ -128,7 +129,16 @@ fun ForumScreen(
                             goodClasses = forum.goodClasses,
                             goodClassId = state.goodClassId,
                             onSelect = { coroutineScope.launch { pagerState.animateScrollToPage(it) } },
-                            onEvent = onEvent,
+                            onEvent = { event ->
+                                // Another class or order is another list, which starts at its top
+                                val changed = when (event) {
+                                    is ForumEvent.SetGoodClass -> ForumTab.Good.takeIf { event.classId != state.goodClassId }
+                                    is ForumEvent.SetSort -> ForumTab.Latest.takeIf { event.sortType != state.sortType }
+                                    else -> null
+                                }
+                                changed?.let { listStates[it] }?.let(header::toListStart)
+                                onEvent(event)
+                            },
                             modifier = Modifier
                                 .align(Alignment.Start)
                                 .sharedHeaderPinned(header)

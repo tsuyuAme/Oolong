@@ -48,17 +48,22 @@ object TiebaUtil {
     @JvmStatic
     fun startSign(context: Context) = AutoSign.start(context)
 
+    /**
+     * Shares [text], under [title] when given, through the system's share sheet. Always the sheet:
+     * sent bare, some systems hand it to a remembered app or drop it without a word.
+     */
     @JvmStatic
     @JvmOverloads
     fun shareText(context: Context, text: String, title: String? = null) {
-        context.startActivity(Intent().apply {
-            action = Intent.ACTION_SEND
+        val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(
                 Intent.EXTRA_TEXT,
                 "${if (title != null) "「$title」\n" else ""}$text\n" + context.getString(R.string.share_suffix)
             )
-        })
+        }
+        runCatching { context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            .onFailure { context.toastShort(R.string.toast_share_unavailable) }
     }
 
     suspend fun reportPost(

@@ -1,7 +1,11 @@
 package oolong.client.ui.page.thread
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,20 +23,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,29 +67,30 @@ import oolong.client.models.LoadPicPageData
 import oolong.client.models.PhotoViewData
 import oolong.client.models.PicItem
 import oolong.client.repository.ThreadSort
+import oolong.client.toastShort
+import oolong.client.ui.common.theme.compose.CapTextScale
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
-import oolong.client.ui.widgets.compose.ChromeStyle
 import oolong.client.ui.widgets.compose.Container
 import oolong.client.ui.widgets.compose.EndPull
 import oolong.client.ui.widgets.compose.ErrorScreen
-import oolong.client.ui.widgets.compose.GlassTab
-import oolong.client.ui.widgets.compose.GlassTabRow
+import oolong.client.ui.widgets.compose.GlassTopBarItemHeight
 import oolong.client.ui.widgets.compose.LoadMoreEffect
-import oolong.client.ui.widgets.compose.LocalChromeStyle
+import oolong.client.ui.widgets.compose.LocalPressedByGlass
 import oolong.client.ui.widgets.compose.MyLazyColumn
 import oolong.client.ui.widgets.compose.PullRefresh
 import oolong.client.ui.widgets.compose.SegmentedControl
 import oolong.client.ui.widgets.compose.SharedThreadCard
 import oolong.client.ui.widgets.compose.VerticalDivider
 import oolong.client.ui.widgets.compose.WavyLoader
+import oolong.client.ui.widgets.compose.floatingGlass
 import oolong.client.ui.widgets.compose.loadMoreFooter
-import oolong.client.ui.widgets.compose.matchedGeometry
 import oolong.client.ui.widgets.compose.matchedGeometryAnchor
 import oolong.client.ui.widgets.compose.plus
-import oolong.client.ui.widgets.compose.rememberScrollProgress
+import oolong.client.ui.widgets.compose.pressedByGlass
 import oolong.client.ui.widgets.compose.states.StateScreenScope
 import oolong.client.utils.ImageUtil
 
@@ -81,8 +102,21 @@ internal const val FIRST_REPLY_INDEX = 1
 
 private const val THREAD_HEADER_KEY = "ThreadHeader"
 
-/** The key the reply filter in the list and its copy docking in the bar are matched by. */
-internal object ReplyFilter
+/** The index of the reply count header in the list, which the bar's switches stand in for once it is under the bar. */
+internal const val THREAD_HEADER_INDEX = FIRST_REPLY_INDEX
+
+/**
+ * Before the replies are swapped for another list of them (the author's posts, the other order):
+ * read past the reply header, the list goes to the start of the replies, the header just under
+ * the bar where its switches stand in for it. Otherwise the list stays where it is, kept there by
+ * the floor or the header on screen.
+ */
+internal fun LazyListState.keepRepliesStart() {
+    if (firstVisibleItemIndex > THREAD_HEADER_INDEX) requestScrollToItem(THREAD_HEADER_INDEX + 1)
+}
+
+/** The key the reply count header reports where it is by, for the bar's switches to follow. */
+internal object ReplyHeader
 
 /** The posts of the thread, or the first load or its error in their place. */
 @OptIn(ExperimentalMaterialApi::class)
@@ -182,6 +216,9 @@ internal fun ThreadContent(
                 append = if (firstLoad) posts.refresh else posts.append,
                 hasMore = posts.hasMore,
                 pullToLoadLatest = !newestFirst && !firstLoad,
+                // While the replies load anew, as after switching to the author's posts or the
+                // other order, the floor and the reply header can stay where they were
+                fillScreen = firstLoad && state.thread != null,
                 onRetry = {
                     onEvent(
                         when {
@@ -234,9 +271,9 @@ private fun FirstPost(
 }
 
 /**
- * The reply count and the switch between all posts and the thread author's, above the replies.
- * The count is content and scrolls away. The switch is where the bar's copy of it ([ThreadFilter])
- * docks from as it scrolls up into the bar's row, crossfading from this flat one to the glass one.
+ * The reply count, and how the replies are shown: newest first or not, and all posts or the thread
+ * author's only. It is content and scrolls away; once it is under the bar, the bar's switches
+ * ([ThreadFilterSwitches]) stand in for it.
  */
 @Composable
 internal fun ThreadHeader(
@@ -244,11 +281,10 @@ internal fun ThreadHeader(
     onEvent: (ThreadEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val docking = rememberScrollProgress(ReplyFilter)
-    val newestFirst = state.query.sort == ThreadSort.NewestFirst
     Container(modifier = modifier) {
         Row(
             modifier = Modifier
+                .matchedGeometryAnchor(ReplyHeader)
                 .background(ExtendedTheme.colors.background)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -261,35 +297,45 @@ internal fun ThreadHeader(
                 color = ExtendedTheme.colors.text,
                 maxLines = 1,
             )
-            SegmentedControl(
-                options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
-                selected = if (state.query.seeLz) 1 else 0,
-                onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
-                compact = true,
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .matchedGeometryAnchor(ReplyFilter)
-                    .graphicsLayer { alpha = 1f - docking.fraction(0f..FilterCrossfade) }
-                    .width(IntrinsicSize.Max),
-            )
             Spacer(modifier = Modifier.weight(1f))
-            // 右侧：正序 / 倒序（与筛选同尺寸）
-            SegmentedControl(
-                options = persistentListOf(
-                    stringResource(R.string.text_sort_asc),
-                    stringResource(R.string.text_sort_desc),
-                ),
-                selected = if (newestFirst) 1 else 0,
-                onSelect = { index ->
-                    val wantNewest = index == 1
-                    if (wantNewest != newestFirst) onEvent(ThreadEvent.ToggleSort)
-                },
-                compact = true,
-                modifier = Modifier.width(IntrinsicSize.Max),
-            )
+            // Controls, so their text grows only as far as the bars' does, leaving the count its room
+            CapTextScale {
+                SortSwitch(
+                    newestFirst = state.query.sort == ThreadSort.NewestFirst,
+                    onEvent = onEvent,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                SegmentedControl(
+                    options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
+                    selected = if (state.query.seeLz) 1 else 0,
+                    onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
+                    // Both options as wide as the wider one
+                    modifier = Modifier.width(IntrinsicSize.Max),
+                )
+            }
         }
     }
 }
+
+/** The header's newest-first switch: as tall as the switch beside it, its track darker while on. */
+@Composable
+private fun SortSwitch(newestFirst: Boolean, onEvent: (ThreadEvent) -> Unit, modifier: Modifier = Modifier) {
+    val colors = ExtendedTheme.colors
+    val track by animateColorAsState(if (newestFirst) colors.text.copy(alpha = 0.12f) else colors.chip, Motion.snap(), label = "sortTrack")
+    FilterSwitch(
+        checked = newestFirst,
+        label = stringResource(R.string.title_sort),
+        notice = stringResource(if (newestFirst) R.string.toast_oldest_first else R.string.toast_newest_first),
+        onToggle = { onEvent(ThreadEvent.ToggleSort) },
+        modifier = modifier
+            .size(SortSwitchSize)
+            .background(track, CircleShape),
+    ) {
+        SortIcon(flipped = newestFirst, tint = if (newestFirst) colors.text else colors.textSecondary)
+    }
+}
+
+private val SortSwitchSize = 38.dp
 
 @Composable
 private fun LoadPreviousButton(onEvent: (ThreadEvent) -> Unit) {
@@ -381,49 +427,151 @@ private fun rememberPhotoViewData(state: ThreadState): (Post, PostContent.Image)
     }
 }
 
-/** The switch between all posts and the thread author's, docked in the top bar on a glass capsule. */
+/**
+ * Only the thread author's posts, and newest first, as two switches on a glass capsule in the top
+ * bar: there once the reply header, which has the same, is under the bar ([shown] from 0 to 1),
+ * so they can be changed anywhere in the thread. On, a switch sits on a pill in the page's colour
+ * turned dark, and its icon fills or turns over.
+ */
 @Composable
-internal fun ThreadFilter(seeLz: Boolean, onEvent: (ThreadEvent) -> Unit) {
-    val selected = if (seeLz) 1 else 0
-    val docking = rememberScrollProgress(ReplyFilter)
-    if (LocalChromeStyle.current == ChromeStyle.Classic) {
-        // On a classic bar it stays the switch it is in the list, rather than becoming tabs
-        SegmentedControl(
-            options = persistentListOf(stringResource(R.string.text_all), stringResource(R.string.title_see_lz)),
-            selected = selected,
-            onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
-            compact = true,
-            modifier = Modifier
-                .matchedGeometry(ReplyFilter, docking)
-                .graphicsLayer { alpha = docking.fraction(0f..FilterCrossfade) }
-                .width(IntrinsicSize.Max),
-        )
-        return
-    }
-    GlassTabRow(
-        selectedTabIndex = selected,
-        onSelect = { onEvent(ThreadEvent.SetSeeLz(it == 1)) },
+internal fun ThreadFilterSwitches(
+    seeLz: Boolean,
+    newestFirst: Boolean,
+    onEvent: (ThreadEvent) -> Unit,
+    shown: () -> Float,
+) {
+    val colors = ExtendedTheme.colors
+    val visible by remember { derivedStateOf { shown() > 0.05f } }
+    Row(
         modifier = Modifier
-            .matchedGeometry(ReplyFilter, docking)
-            .graphicsLayer { alpha = docking.fraction(0f..FilterCrossfade) },
+            .graphicsLayer {
+                val fraction = shown()
+                alpha = fraction
+                val scale = 0.8f + 0.2f * fraction
+                scaleX = scale
+                scaleY = scale
+                transformOrigin = TransformOrigin(1f, 0.5f)
+            }
+            .height(GlassTopBarItemHeight)
+            .floatingGlass(SmoothCornerShape.Capsule, pressable = true)
+            .padding(SwitchInset)
+            // Hidden, they take no taps, nor a screen reader's attention
+            .then(if (visible) Modifier else Modifier.clearAndSetSemantics {}),
+        horizontalArrangement = Arrangement.spacedBy(SwitchGap),
     ) {
-        listOf(R.string.text_all, R.string.title_see_lz).forEachIndexed { index, label ->
-            GlassTab(
-                selected = index == selected,
-                onClick = { if (index != selected) onEvent(ThreadEvent.SetSeeLz(index == 1)) },
-                selectedContentColor = ExtendedTheme.colors.text,
-                unselectedContentColor = ExtendedTheme.colors.textSecondary,
-            ) {
-                Text(
-                    text = stringResource(label),
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                    fontSize = 12.sp,
-                    fontWeight = if (index == selected) FontWeight.SemiBold else FontWeight.Normal,
-                )
+        val pill = if (colors.background.alpha < 1f) colors.sheet else colors.background
+        // Their glass answers presses on them as one piece
+        CompositionLocalProvider(LocalPressedByGlass provides true) {
+            BarSwitch(
+                checked = seeLz,
+                enabled = visible,
+                label = stringResource(R.string.title_see_lz),
+                notice = stringResource(if (seeLz) R.string.toast_all_posts else R.string.title_see_lz),
+                onToggle = { onEvent(ThreadEvent.SetSeeLz(!seeLz)) },
+            ) { on ->
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(if (on) LzIcon.BoxFill else LzIcon.Box, contentDescription = null, tint = if (on) pill else colors.textSecondary)
+                    Icon(LzIcon.Letters, contentDescription = null, tint = if (on) colors.text else colors.textSecondary)
+                }
+            }
+            BarSwitch(
+                checked = newestFirst,
+                enabled = visible,
+                label = stringResource(R.string.title_sort),
+                notice = stringResource(if (newestFirst) R.string.toast_oldest_first else R.string.toast_newest_first),
+                onToggle = { onEvent(ThreadEvent.ToggleSort) },
+            ) { on ->
+                SortIcon(flipped = on, tint = if (on) pill else colors.textSecondary)
             }
         }
     }
 }
 
-/** How much of its docking the reply filter spends turning from the list's flat switch into glass. */
-private const val FilterCrossfade = 0.3f
+/** One of the bar's switches: a 40dp circle, on a pill in the text colour while [checked]. */
+@Composable
+private fun BarSwitch(
+    checked: Boolean,
+    enabled: Boolean,
+    label: String,
+    notice: String,
+    onToggle: () -> Unit,
+    icon: @Composable (on: Boolean) -> Unit,
+) {
+    val colors = ExtendedTheme.colors
+    val pill by animateColorAsState(if (checked) colors.text else colors.text.copy(alpha = 0f), Motion.snap(), label = "barSwitch")
+    FilterSwitch(
+        checked = checked,
+        label = label,
+        notice = notice,
+        onToggle = onToggle,
+        enabled = enabled,
+        modifier = Modifier
+            .size(GlassTopBarItemHeight - SwitchInset * 2)
+            .background(pill, CircleShape),
+    ) {
+        icon(checked)
+    }
+}
+
+/**
+ * A switch for how the replies are shown, as an icon: a tap turns it over and says what the
+ * replies now show in a [notice]; a long press says what it is, in [label], the way the system's
+ * bar buttons do, and switches nothing.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FilterSwitch(
+    checked: Boolean,
+    label: String,
+    notice: String,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .combinedClickable(
+                enabled = enabled,
+                interactionSource = null,
+                // On the bar's glass, which answers the press
+                indication = if (pressedByGlass()) null else PressFeedback.overlay(CircleShape),
+                onClickLabel = label,
+                onLongClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    context.toastShort(label)
+                },
+                onClick = {
+                    haptics.performHapticFeedback(if (checked) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                    context.toastShort(notice)
+                    onToggle()
+                },
+            )
+            .semantics {
+                contentDescription = label
+                role = Role.Switch
+                toggleableState = ToggleableState(checked)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+/** The order icon, turned upside down for newest first. */
+@Composable
+internal fun SortIcon(flipped: Boolean, tint: Color) {
+    val turn by animateFloatAsState(if (flipped) 1f else 0f, Motion.snap(), label = "sortTurn")
+    Icon(
+        imageVector = Symbols.Sort,
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.graphicsLayer { scaleY = 1f - 2f * turn },
+    )
+}
+
+private val SwitchInset = 4.dp
+private val SwitchGap = 0.dp

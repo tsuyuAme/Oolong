@@ -89,6 +89,7 @@ import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.common.windowsizeclass.LocalWindowSizeClass
 import oolong.client.ui.common.windowsizeclass.WindowWidthSizeClass
 import oolong.client.ui.page.photoview.LocalPhotoViewer
@@ -102,6 +103,7 @@ import oolong.client.utils.EmoticonUtil.emoticonString
 import oolong.client.utils.ImageUtil
 import oolong.client.utils.StringUtil
 import oolong.client.utils.StringUtil.getShortNumString
+import oolong.client.utils.TiebaUtil
 import oolong.client.utils.appPreferences
 import kotlin.math.max
 import kotlin.math.min
@@ -192,8 +194,7 @@ fun Card(
         else -> Modifier
     }
 
-    val paddingModifier = if (action != null) Modifier.padding(top = 16.dp)
-    else Modifier.padding(vertical = 16.dp)
+    val paddingModifier = Modifier.padding(vertical = 16.dp)
 
     Column(
         modifier = cardModifier
@@ -208,9 +209,14 @@ fun Card(
         ) {
             content()
         }
-        action?.invoke(this)
+        if (action != null) {
+            Spacer(modifier = Modifier.height(ActionRowTop))
+            action(this)
+        }
     }
 }
+
+private val ActionRowTop = 12.dp
 
 @Composable
 fun Badge(
@@ -352,11 +358,13 @@ fun ForumInfoChip(
 ) {
     val imageUri = imageUriProvider()
     val name = nameProvider()
+    val press = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
+            .pressScale(press)
             .heightIn(min = 28.dp)
             .background(color = ExtendedTheme.colors.chip, shape = SmoothCornerShape.Capsule)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
+            .clickable(interactionSource = press, indication = PressFeedback.overlay(SmoothCornerShape.Capsule), onClick = onClick)
             .padding(start = if (imageUri != null) 4.dp else 10.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -640,7 +648,7 @@ fun ThreadReplyBtn(
 fun ThreadAgreeBtn(
     hasAgree: Boolean,
     agreeNum: Int,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val contentColor =
@@ -745,6 +753,7 @@ fun FeedCard(
                 }
             }
     }
+    val context = LocalContext.current
     val author = thread.author
     val reply = thread.reply
     // The thread page opens out of the card, and closes back into it
@@ -818,7 +827,9 @@ fun FeedCard(
             ) {
                 ThreadShareBtn(
                     shareNum = thread.shareCount,
-                    onClick = {},
+                    onClick = {
+                        TiebaUtil.shareText(context, "https://tieba.baidu.com/p/${thread.id}", thread.title.takeIf(String::isNotBlank))
+                    },
                 )
                 ThreadReplyBtn(
                     replyNum = thread.replyCount,
@@ -874,6 +885,7 @@ private fun FeedReplyBlock(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val authorPress = remember { MutableInteractionSource() }
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -883,7 +895,9 @@ private fun FeedReplyBlock(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
-                modifier = Modifier.clickable(interactionSource = null, indication = null) { onClickUser(reply.author) },
+                modifier = Modifier
+                    .pressScale(authorPress)
+                    .clickable(interactionSource = authorPress, indication = PressFeedback.overlay(Corners.full)) { onClickUser(reply.author) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -967,13 +981,20 @@ internal fun FeedCardActions(
 
 private val ActionPadding = 8.dp
 
+/**
+ * As tall as the forum chip beside them, so the row is as tall as what shows in it and the card's
+ * spacing reads true. Compose widens the place a tap lands on to 48dp around each.
+ */
+private val ActionHeight = 28.dp
+
 @Composable
 private fun ActionBtnPlaceholder(
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = Modifier
-            .padding(horizontal = ActionPadding, vertical = 12.dp)
+            .height(ActionHeight)
+            .padding(horizontal = ActionPadding)
             .then(modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -1001,7 +1022,8 @@ private fun ActionBtn(
     val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Row(
         modifier = clickableModifier
-            .padding(horizontal = ActionPadding, vertical = 12.dp)
+            .height(ActionHeight)
+            .padding(horizontal = ActionPadding)
             .then(modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,

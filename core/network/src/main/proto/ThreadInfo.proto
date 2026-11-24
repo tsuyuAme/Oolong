@@ -75,4 +75,6 @@ message ThreadInfo {
   string tabName = 176;
   int32 isDeleted = 181;
   int32 hotNum = 182;
+  // JSON for a game the thread promotes, with a button to download or book it; empty on other threads
+  string game_card = 237;
 }

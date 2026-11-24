@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +69,7 @@ import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.navigation.ForumKey
 import oolong.client.ui.navigation.HotTopicListKey
 import oolong.client.ui.navigation.TopicKey
@@ -183,10 +185,12 @@ private fun LazyListScope.topicsSection(
 ) {
     item(key = "TopicsHeader") {
         SectionHeader(text = stringResource(R.string.hot_section_topics)) {
+            val press = remember { MutableInteractionSource() }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), onClick = onOpenAll)
+                    .pressScale(press)
+                    .clickable(interactionSource = press, indication = PressFeedback.overlay(Corners.full), onClick = onOpenAll)
                     .padding(start = Spacing.xs, top = Spacing.xxs, bottom = Spacing.xxs),
             ) {
                 Text(text = stringResource(R.string.text_all), style = TextStyles.caption, color = ExtendedTheme.colors.textSecondary)

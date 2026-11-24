@@ -20,7 +20,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +51,7 @@ import oolong.client.ui.widgets.compose.LoadMoreEffect
 import oolong.client.ui.widgets.compose.MyLazyColumn
 import oolong.client.ui.widgets.compose.NetworkImage
 import oolong.client.ui.widgets.compose.SearchBox
+import oolong.client.ui.widgets.compose.TextButton
 import oolong.client.ui.widgets.compose.VerticalDivider
 import oolong.client.ui.widgets.compose.longPressMenu
 

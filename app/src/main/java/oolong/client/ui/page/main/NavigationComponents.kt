@@ -14,7 +14,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -88,6 +91,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import oolong.client.R
+import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedColors
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
@@ -105,6 +109,7 @@ import oolong.client.ui.widgets.compose.OwnAvatar
 import oolong.client.ui.widgets.compose.classicBarGlass
 import oolong.client.ui.widgets.compose.floatingGlass
 import oolong.client.ui.widgets.compose.glassLens
+import oolong.client.ui.widgets.compose.isLensGlass
 import oolong.client.ui.widgets.compose.liquidLensOptics
 import oolong.client.ui.widgets.compose.longPressMenu
 import kotlin.math.abs
@@ -131,6 +136,25 @@ fun NavigationRail(
     val itemHeight = if (showLabels) NavItemHeight else NavItemCollapsedWidth
     val indicator = remember { Animatable(currentPosition.toFloat()) }
     LaunchedEffect(currentPosition) { indicator.animateTo(currentPosition.toFloat(), IndicatorSpring) }
+    // A lens lifts off the item held, as off the floating pill
+    val sources = remember(navigationItems.size) { List(navigationItems.size) { MutableInteractionSource() } }
+    var held by remember { mutableIntStateOf(-1) }
+    val press = remember { Animatable(0f) }
+    LaunchedEffect(sources) {
+        sources.forEachIndexed { index, source ->
+            launch {
+                source.interactions.collect { interaction ->
+                    when (interaction) {
+                        is PressInteraction.Press -> {
+                            held = index
+                            launch { press.animateTo(1f, PressSpring) }
+                        }
+                        is PressInteraction.Release, is PressInteraction.Cancel -> launch { press.animateTo(0f, PressSpring) }
+                    }
+                }
+            }
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -143,7 +167,7 @@ fun NavigationRail(
     ) {
         Box(
             modifier = Modifier
-                .floatingGlass(NavRailShape)
+                .floatingGlass(NavRailShape, lensTarget = true)
                 .padding(NavPillPadding),
         ) {
             Box(
@@ -166,8 +190,9 @@ fun NavigationRail(
                                 if (menu == null) {
                                     Modifier.selectable(
                                         selected = selected,
-                                        interactionSource = null,
-                                        indication = PressFeedback.overlay(NavPillShape),
+                                        interactionSource = sources[index],
+                                        // The lens shows the press
+                                        indication = null,
                                         role = Role.Tab,
                                         onClick = { onSelect(index) },
                                     )
@@ -177,7 +202,7 @@ fun NavigationRail(
                                             role = Role.Tab
                                             this.selected = selected
                                         }
-                                        .longPressMenu(items = menu, onClick = { onSelect(index) }, indication = PressFeedback.overlay(NavPillShape))
+                                        .longPressMenu(items = menu, onClick = { onSelect(index) }, indication = null, fromWhole = true, interactionSource = sources[index])
                                 }
                             ),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -195,6 +220,26 @@ fun NavigationRail(
                         }
                     }
                 }
+            }
+            // Drawn above the items, so it magnifies them and the rail
+            val lensGrows = if (isLensGlass()) LensScale else 1f
+            val lensWidth = itemWidth * lerpFloat(1f, lensGrows, press.value)
+            val lensHeight = itemHeight * lerpFloat(1f, lensGrows, press.value)
+            val lensOptics = remember(itemWidth) { liquidLensOptics(itemWidth * LensScale) }
+            if (held >= 0) {
+                Box(
+                    modifier = Modifier
+                        .wrapContentSize(Alignment.TopStart, unbounded = true)
+                        .offset {
+                            IntOffset(
+                                -((lensWidth - itemWidth) / 2).roundToPx(),
+                                (held * itemHeight.toPx()).roundToInt() - ((lensHeight - itemHeight) / 2).roundToPx(),
+                            )
+                        }
+                        .size(width = lensWidth, height = lensHeight)
+                        .graphicsLayer { alpha = press.value.coerceIn(0f, 1f) }
+                        .glassLens(NavPillShape, lensOptics),
+                )
             }
         }
     }
@@ -436,7 +481,9 @@ fun FloatingNavBar(
                                         }
                                         val coordinates = pill ?: return@awaitEachGesture
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menus.show(menu(), anchor = Rect(coordinates.localToWindow(down.position), Size.Zero))
+                                        // Out of the item held, as from the rail
+                                        val item = itemBounds[indexAt(down.position.x)] ?: Rect(coordinates.localToWindow(down.position), Size.Zero)
+                                        menus.show(menu(), anchor = item)
                                         while (true) {
                                             val change = awaitPointerEvent().changes
                                                 .firstOrNull { it.id == down.id } ?: break
@@ -540,7 +587,8 @@ fun FloatingNavBar(
                 // Grows by layout rather than a layer scale so the glass samples the area it covers,
                 // but outside the pill's size, which would otherwise grow with it and push the
                 // search button down.
-                val lensScale = lerpFloat(1f, LensScale, press.value)
+                // A veil, without glass to lift, keeps to the item
+                val lensScale = lerpFloat(1f, if (isLensGlass()) LensScale else 1f, press.value)
                 val lensWidth = itemWidth * lensScale
                 val lensHeight = itemHeight * lensScale
                 val lensOptics = remember(itemHeight) { liquidLensOptics(itemHeight * LensScale) }
@@ -673,7 +721,9 @@ private fun RowScope.ClassicNavItem(
                 .then(pillModifier)
                 .pressScale(interactionSource)
                 .size(width = ClassicPillWidth, height = ClassicPillHeight)
-                .drawBehind { drawRoundRect(emphasis.copy(alpha = 0.12f * pill), cornerRadius = CornerRadius(size.height / 2)) },
+                .drawBehind { drawRoundRect(emphasis.copy(alpha = 0.12f * pill), cornerRadius = CornerRadius(size.height / 2)) }
+                // The bar is part of the page: its item is pressed in, as anything on it is
+                .indication(interactionSource, PressFeedback.overlay(Corners.full)),
             contentAlignment = Alignment.Center,
         ) { icon(color) }
         Text(text = title, color = color, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)

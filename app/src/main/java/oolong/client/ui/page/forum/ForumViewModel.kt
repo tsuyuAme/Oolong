@@ -149,13 +149,13 @@ class ForumViewModel @AssistedInject constructor(
         if (sortType == selection.value.sortType) return
         selection.update { it.copy(sortType = sortType) }
         viewModelScope.launch { runCatching { sortStore.setSortType(forumName, sortType) } }
-        pagers.value[ForumTab.Latest]?.refresh()
+        pagers.value[ForumTab.Latest]?.refresh(clear = true)
     }
 
     fun setGoodClass(classId: Int) {
         if (classId == selection.value.goodClassId) return
         selection.update { it.copy(goodClassId = classId) }
-        pagers.value[ForumTab.Good]?.refresh()
+        pagers.value[ForumTab.Good]?.refresh(clear = true)
     }
 
     /** Reloads the shown tab, and with it the forum when that tab lists it. */

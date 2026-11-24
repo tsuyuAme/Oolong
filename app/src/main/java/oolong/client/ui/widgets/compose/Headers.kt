@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ProvideTextStyle
 import androidx.compose.material.Text
@@ -22,6 +23,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.widgets.compose.placeholder.PlaceholderHighlight
 import oolong.client.ui.widgets.compose.placeholder.fade
 import oolong.client.ui.widgets.compose.placeholder.placeholder
@@ -64,12 +67,16 @@ fun UserHeader(
     desc: @Composable (() -> Unit)? = null,
     content: @Composable (RowScope.() -> Unit)? = null,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    // The avatar is a control of its own: pressed in, in its round shape
     val clickableModifier = if (onClick != null) {
-        Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = onClick,
-        )
+        Modifier
+            .pressScale(interaction)
+            .clickable(
+                interactionSource = interaction,
+                indication = PressFeedback.overlay(CircleShape),
+                onClick = onClick,
+            )
     } else Modifier
     Row(
         modifier = modifier.fillMaxWidth(),

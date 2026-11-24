@@ -58,13 +58,15 @@ fun Button(
     content: @Composable RowScope.() -> Unit
 ) {
     val contentColor by colors.contentColor(enabled)
+    // On glass that answers presses, such as a top bar's, the glass shows them instead
+    val onGlass = pressedByGlass()
     // The press veil takes the content colour, so a filled button lightens rather than darkens
     CompositionLocalProvider(LocalContentColor provides contentColor.copy(alpha = 1f)) {
         Surface(
             // The caller's modifier first, so its padding lies outside the shape
             modifier = modifier
                 .heightIn(min = minHeight)
-                .pressScale(interactionSource),
+                .then(if (onGlass) Modifier else Modifier.pressScale(interactionSource)),
             shape = shape,
             color = colors.backgroundColor(enabled).value,
             contentColor = contentColor.copy(alpha = 1f),
@@ -81,7 +83,7 @@ fun Button(
                                 onClick = onClick,
                                 enabled = enabled,
                                 interactionSource = interactionSource,
-                                indication = PressFeedback.overlay(shape)
+                                indication = if (onGlass) null else PressFeedback.overlay(shape)
                             )
                             .padding(contentPadding),
                         horizontalArrangement = Arrangement.Center,

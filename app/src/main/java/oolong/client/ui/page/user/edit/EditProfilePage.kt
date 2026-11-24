@@ -49,7 +49,9 @@ import coil3.compose.AsyncImage
 import kotlinx.collections.immutable.persistentListOf
 import oolong.client.R
 import oolong.client.toastShort
+import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.navigation.Navigator
 import oolong.client.ui.page.LocalNavigator
@@ -347,7 +349,7 @@ fun EditProfileCard(
                         }
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
+                            indication = PressFeedback.overlay(Corners.xs)
                         ) { onModifySex?.invoke() }
                         .placeholder(visible = loading)
                 ) {

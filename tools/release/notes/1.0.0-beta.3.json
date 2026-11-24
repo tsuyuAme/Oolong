@@ -1,0 +1,54 @@
+{
+  "zh": {
+    "新增": [
+      "选择图片\n点按图片查看大图，点按圆圈选中；拖动圆圈可连续选择，双指缩放可调整每行数量；已选图片可拖动排序；支持拍照、编辑和系统相册的收藏",
+      "只看楼主与倒序\n楼层标题旁新增倒序按钮；楼层标题移入顶栏后，顶栏显示只看楼主与倒序开关"
+    ],
+    "改进": [
+      "按压反馈\n全应用的按压效果统一；悬浮的玻璃按钮按下时放大，并在触点处高亮；菜单从按下的按钮展开",
+      "列表滚动\n高刷新率手机上，列表慢速滚动时保持高帧率",
+      "帖子卡片\n底部按钮行的上下间距一致；回复的作者名改为次要文字颜色",
+      "标签栏\n搜索页改用玻璃标签栏，宽度与搜索框一致；切换精华分类时，标签名称与宽度平滑过渡"
+    ],
+    "修复": [
+      "部分吧的头像显示为贴吧默认图标",
+      "打开图片或视频时，屏幕亮度升高",
+      "帖子卡片上的分享按钮，以及搜索结果卡片底部的按钮无法使用",
+      "快速滑动切换首页标签后，点按底栏无法切换到对应页面",
+      "屏幕较窄或显示大小较大时，关注的吧只显示一列",
+      "空页面与错误页面的内容没有居中",
+      "吧内切换精华分类或排序后，列表没有加载提示",
+      "帖子中切换只看楼主或倒序时，阅读位置改变",
+      "经典样式下，顶栏按钮没有按压反馈",
+      "标签选项菜单收起时，箭头转回有延迟",
+      "更新页面不显示当前版本的更新说明",
+      "提示条中的按钮离文字过近，颜色与文字不一致"
+    ]
+  },
+  "en": {
+    "New": [
+      "Picking pictures\nTap a picture to view it large, and its circle to pick it; drag from a circle to pick several, and pinch to change how many fit in a row; picked pictures can be dragged into order; taking photos, editing and the system gallery's favorites are supported",
+      "Author's posts and newest first\nA newest-first button sits beside the floors' heading; once the heading moves into the top bar, the bar shows switches for both"
+    ],
+    "Improved": [
+      "Pressing\nPresses look the same across the app; floating glass buttons grow and light up where they are touched; menus open out of the button pressed",
+      "Scrolling\nOn phones with a high refresh rate, lists keep a high frame rate when scrolled slowly",
+      "Thread cards\nThe row of buttons at the bottom has even spacing above and below; a reply's author name uses the secondary text color",
+      "Tabs\nSearch uses the glass tab bar, as wide as the search field; picking a class of good threads changes the tab's name and width smoothly"
+    ],
+    "Fixed": [
+      "Some forums' avatars showed Tieba's default icon",
+      "Opening a picture or video raised the screen's brightness",
+      "The share button on thread cards, and the buttons at the bottom of search result cards, didn't work",
+      "After quickly swiping between home tabs, tapping the bottom bar didn't switch to that page",
+      "On narrow screens or with a larger display size, followed forums showed one to a row",
+      "Empty and error screens weren't centered",
+      "Switching a forum's class of good threads or its order showed no loading",
+      "Switching to the author's posts or the other order in a thread moved the reading position",
+      "In the classic style, top bar buttons showed no press",
+      "A tab's options arrow turned back late when its menu closed",
+      "The update page didn't show the installed version's notes",
+      "A notice's button sat too close to its text, in a color that didn't match"
+    ]
+  }
+}

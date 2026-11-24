@@ -112,8 +112,10 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.media3.common.C
+import androidx.media3.common.ColorInfo
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
@@ -127,8 +129,10 @@ import kotlinx.coroutines.launch
 import oolong.client.R
 import oolong.client.findActivity
 import oolong.client.ui.common.LocalAccount
+import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.LocalReduceMotion
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.page.photoview.LightSystemBars
@@ -165,6 +169,9 @@ private class Playback(player: Player) : Player.Listener {
     /** Height over width of the picture, once it is known. */
     var aspect by mutableFloatStateOf(0f)
 
+    /** Whether the video playing is HDR, which only an HDR window shows brighter than white. */
+    var hdr by mutableStateOf(false)
+
     val ended get() = state == Player.STATE_ENDED
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -181,6 +188,15 @@ private class Playback(player: Player) : Player.Listener {
 
     override fun onRenderedFirstFrame() {
         firstFrame = true
+    }
+
+    @OptIn(UnstableApi::class)
+    override fun onTracksChanged(tracks: Tracks) {
+        hdr = tracks.groups.any { group ->
+            group.type == C.TRACK_TYPE_VIDEO && (0 until group.length).any { index ->
+                group.isTrackSelected(index) && ColorInfo.isTransferHdr(group.getTrackFormat(index).colorInfo)
+            }
+        }
     }
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -245,7 +261,7 @@ internal fun VideoViewerOverlay(viewer: VideoViewer, opening: VideoOpening, orig
     val shrunk = mini && !inPip
     if (!shrunk) {
         LightSystemBars()
-        FullColorWindow()
+        FullColorWindow(hdr = playback.hdr)
     }
 
     var position by remember { mutableLongStateOf(player.currentPosition) }
@@ -1019,7 +1035,7 @@ private fun BoxScope.VideoChrome(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .padding(top = 2.dp)
-                                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { expanded = !expanded },
+                                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = PressFeedback.overlay(Corners.xs)) { expanded = !expanded },
                             )
                         }
                     }

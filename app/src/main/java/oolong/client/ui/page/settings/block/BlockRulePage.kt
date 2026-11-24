@@ -2,6 +2,7 @@ package oolong.client.ui.page.settings.block
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,6 +72,7 @@ import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.navigation.BlockRuleKey
 import oolong.client.ui.navigation.Navigator
 import oolong.client.ui.page.LocalNavigator
@@ -320,13 +322,15 @@ private fun ConditionRow(test: FlatCondition.Test, onChange: (FlatCondition.Test
                 else -> null
             },
             remove = {
+                val press = remember { MutableInteractionSource() }
                 Icon(
                     Symbols.Close,
                     contentDescription = stringResource(id = R.string.rule_condition_remove),
                     tint = colors.textSecondary,
                     modifier = Modifier
+                        .pressScale(press)
                         .size(32.dp)
-                        .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), onClick = onRemove)
+                        .clickable(interactionSource = press, indication = PressFeedback.overlay(Corners.full), onClick = onRemove)
                         .padding(8.dp),
                 )
             },
@@ -510,7 +514,8 @@ private fun AddCondition(onAdd: (ConditionField) -> Unit) {
             .background(colors.chip, Corners.full)
             .onGloballyPositioned { bounds = it.boundsInWindow() }
             .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full)) {
-                menus?.show(items = items, anchor = bounds, icon = Symbols.Add)
+                // Out of the whole button, which keeps its icon
+                menus?.show(items = items, anchor = bounds)
             }
             .padding(start = Spacing.sm, end = Spacing.md),
     ) {

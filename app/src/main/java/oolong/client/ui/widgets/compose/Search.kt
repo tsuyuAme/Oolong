@@ -67,6 +67,7 @@ import oolong.client.ui.common.windowsizeclass.LocalWindowSizeClass
 import oolong.client.ui.common.windowsizeclass.WindowWidthSizeClass
 import oolong.client.utils.StringUtil
 import oolong.client.utils.StringUtil.buildAnnotatedStringWithUser
+import oolong.client.utils.TiebaUtil
 import oolong.client.utils.appPreferences
 
 @Composable
@@ -246,6 +247,7 @@ fun SearchThreadItem(
     hideForum: Boolean = false,
     searchKeyword: String? = null,
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier,
         header = {
@@ -313,9 +315,12 @@ fun SearchThreadItem(
                     }
                 }
             ) {
-                ThreadShareBtn(shareNum = item.shareCount, onClick = {})
-                ThreadReplyBtn(replyNum = item.replyCount, onClick = {})
-                ThreadAgreeBtn(hasAgree = false, agreeNum = item.agreeCount, onClick = {})
+                ThreadShareBtn(shareNum = item.shareCount, onClick = {
+                    TiebaUtil.shareText(context, "https://tieba.baidu.com/p/${item.threadId}", item.title.takeIf(String::isNotBlank))
+                })
+                ThreadReplyBtn(replyNum = item.replyCount, onClick = { onClick(item) })
+                // Search doesn't say whether the user likes it, so the count only shows
+                ThreadAgreeBtn(hasAgree = false, agreeNum = item.agreeCount, onClick = null)
             }
         },
         onClick = { onClick(item) },

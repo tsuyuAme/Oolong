@@ -77,7 +77,6 @@ import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
-import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.navigation.ForumKey
 import oolong.client.ui.navigation.Navigator
 import oolong.client.ui.navigation.ThreadKey
@@ -93,7 +92,7 @@ import oolong.client.ui.widgets.compose.GlassTopBarRowHeight
 import oolong.client.ui.widgets.compose.LocalChromeStyle
 import oolong.client.ui.widgets.compose.currentGlassTier
 import oolong.client.ui.widgets.compose.floatingGlass
-import oolong.client.ui.widgets.compose.isGlassAvailable
+import oolong.client.ui.widgets.compose.floatingPress
 import kotlin.math.roundToInt
 
 /**
@@ -204,11 +203,10 @@ fun TopSearchField(state: MainSearchState, onOpen: () -> Unit, modifier: Modifie
                     state.buttonBounds = placed
                 }
                 .graphicsLayer { alpha = if (state.progress.value > 0f) 0f else 1f }
-                .pressScale(interactionSource)
-                // The same glass as the field it turns into; over the page it can't see through, so
-                // it shows as the glass's solid form
-                .then(if (plain) Modifier.background(colors.searchField, CapsuleShape) else Modifier.floatingGlass(CapsuleShape))
-                .clickable(interactionSource = interactionSource, indication = PressFeedback.overlay(CapsuleShape), role = Role.Button, onClick = onOpen)
+                // The same glass as the field it turns into, which answers the press itself; over
+                // the page it can't see through, it shows as the glass's solid form
+                .then(if (plain) Modifier.floatingPress(CapsuleShape).background(colors.searchField, CapsuleShape) else Modifier.floatingGlass(CapsuleShape, pressable = true))
+                .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onOpen)
                 .padding(start = if (compact) 0.dp else (FieldHeight - IconSize) / 2),
         ) {
             Icon(
@@ -275,7 +273,6 @@ fun MainSearchField(
     if ((atTop || LocalChromeStyle.current == ChromeStyle.Classic) && !shown) return
     var origin by remember { mutableStateOf(Offset.Zero) }
     val colors = ExtendedTheme.colors
-    val glass = isGlassAvailable()
     // Without a material the button turns into the plain field, as the one at the top is
     val plain = currentGlassTier() == GlassTier.Solid
     val buttonInteraction = remember { MutableInteractionSource() }
@@ -320,8 +317,7 @@ fun MainSearchField(
                     lerp(state.buttonBounds.translate(-origin), field, state.progress.value)
                 }
                 .semantics { traversalIndex = -1f }
-                .then(if (glass) Modifier else Modifier.pressScale(buttonInteraction))
-                .floatingGlass(CapsuleShape, interactionSource = buttonInteraction)
+                .floatingGlass(CapsuleShape, pressable = !state.open)
                 .then(if (plain) Modifier.drawBehind { drawRect(colors.searchField.copy(alpha = colors.searchField.alpha * state.progress.value)) } else Modifier)
                 .then(
                     if (state.open) {
@@ -329,8 +325,8 @@ fun MainSearchField(
                     } else {
                         Modifier.clickable(
                             interactionSource = buttonInteraction,
-                            // Glass answers the press itself
-                            indication = if (glass) null else PressFeedback.Overlay,
+                            // The glass answers the press itself
+                            indication = null,
                             onClickLabel = stringResource(id = R.string.title_search),
                             role = Role.Button,
                             onClick = onOpen,
@@ -422,11 +418,11 @@ fun MainSearchField(
                         scaleX = lerp(0.6f, 1f, p)
                         scaleY = scaleX
                     }
-                    .then(if (glass) Modifier else Modifier.pressScale(interactionSource))
-                    .floatingGlass(CapsuleShape, interactionSource = interactionSource)
+                    .floatingGlass(CapsuleShape, pressable = state.open)
                     .clickable(
                         interactionSource = interactionSource,
-                        indication = if (glass) null else PressFeedback.Overlay,
+                        // The glass answers the press itself
+                        indication = null,
                         role = Role.Button,
                         enabled = state.open,
                         onClick = onClose,

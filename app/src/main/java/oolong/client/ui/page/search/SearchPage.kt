@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.PagerState
@@ -27,7 +26,6 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ProvideTextStyle
-import androidx.compose.material.Tab
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -40,16 +38,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -81,13 +73,13 @@ import oolong.client.ui.page.search.user.SearchUserList
 import oolong.client.ui.widgets.compose.Container
 import oolong.client.ui.widgets.compose.GlassScaffold
 import oolong.client.ui.widgets.compose.GlassStatusBar
+import oolong.client.ui.widgets.compose.GlassTab
+import oolong.client.ui.widgets.compose.GlassTabRow
 import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.LazyLoadHorizontalPager
 import oolong.client.ui.widgets.compose.MyBackHandler
-import oolong.client.ui.widgets.compose.PagerTabIndicator
 import oolong.client.ui.widgets.compose.SearchBox
 import oolong.client.ui.widgets.compose.TabClickMenu
-import oolong.client.ui.widgets.compose.TabRow
 import oolong.client.ui.widgets.compose.choiceMenuItems
 import oolong.client.ui.widgets.compose.picker.ListSinglePicker
 
@@ -329,11 +321,6 @@ fun SearchScreen(
     }
 }
 
-@Composable
-private fun TabText(@StringRes text: Int, selected: Boolean) {
-    Text(text = stringResource(id = text), fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SearchSuggestionList(
@@ -394,66 +381,49 @@ private fun SearchSuggestionListPreview() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/**
+ * The result pages' tabs on a glass capsule, as every page's tabs are, under the field. Tapping a
+ * tab that sorts again while it is chosen opens its orders.
+ */
 @Composable
 private fun ColumnScope.SearchTabRow(
     pagerState: PagerState,
     pages: ImmutableList<SearchPageItem>,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    TabRow(
+    val select: (Int) -> Unit = { coroutineScope.launch { pagerState.animateScrollToPage(it) } }
+    GlassTabRow(
         selectedTabIndex = pagerState.currentPage,
-        indicator = { tabPositions ->
-            PagerTabIndicator(
-                pagerState = pagerState,
-                tabPositions = tabPositions
-            )
-        },
-        divider = {},
-        backgroundColor = Color.Transparent,
-        contentColor = ExtendedTheme.colors.topBarContent,
+        pagerState = pagerState,
+        onSelect = select,
+        // Across the page, as wide as the row of the field above it, the tabs sharing it
+        fill = true,
         modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .width(searchTabWidth(pages.map { it.title }) * pages.size),
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         pages.fastForEachIndexed { index, item ->
-            val tabTextStyle =
-                MaterialTheme.typography.button.copy(fontSize = 13.sp, letterSpacing = 0.sp)
-
+            val selected = pagerState.currentPage == index
             if (item.supportSort) {
                 TabClickMenu(
-                    selected = pagerState.currentPage == index,
-                    // A glass tab fills the height it is given, and this row gives it all there is
-                    modifier = Modifier.height(TabHeight),
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
-                    text = {
-                        ProvideTextStyle(value = tabTextStyle) {
-                            TabText(item.title, pagerState.currentPage == index)
-                        }
-                    },
+                    selected = selected,
+                    onClick = { select(index) },
+                    text = { Text(text = stringResource(id = item.title)) },
                     items = {
                         choiceMenuItems(item.sortTypes.map { (label, value) -> value to label }, item.selectedSortType()) {
                             item.onSelectedSortTypeChange(it)
                         }
-                    }
+                    },
+                    selectedContentColor = ExtendedTheme.colors.text,
+                    unselectedContentColor = ExtendedTheme.colors.textSecondary,
                 )
             } else {
-                Tab(
-                    text = {
-                        ProvideTextStyle(value = tabTextStyle) {
-                            TabText(item.title, pagerState.currentPage == index)
-                        }
-                    },
-                    selected = pagerState.currentPage == index,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
+                GlassTab(
+                    text = { Text(text = stringResource(id = item.title)) },
+                    selected = selected,
+                    selectedContentColor = ExtendedTheme.colors.text,
+                    unselectedContentColor = ExtendedTheme.colors.textSecondary,
+                    onClick = { select(index) },
                 )
             }
         }
@@ -517,27 +487,3 @@ fun PreviewSearchBox() {
         }
     }
 }
-
-/**
- * The width every tab of a row of search tabs takes: [SearchTabWidth], or more where the longest of
- * [titles], bold and with the arrow of a tab that sorts, would not fit in it, as in some languages.
- */
-@Composable
-internal fun searchTabWidth(titles: List<Int>): Dp {
-    val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.button.copy(fontSize = 13.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Bold)
-    val labels = titles.map { stringResource(id = it) }
-    val widest = remember(labels, style, measurer) {
-        labels.maxOfOrNull { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width } ?: 0
-    }
-    return maxOf(SearchTabWidth, with(LocalDensity.current) { widest.toDp() } + SearchTabRoom)
-}
-
-/** The width of a search tab whose title fits it. */
-private val SearchTabWidth = 76.dp
-
-/** A tab's padding at both ends and a sorting tab's arrow, around its title. */
-private val SearchTabRoom = 40.dp
-
-/** A Material tab's height with text only, which the row's other tabs take. */
-private val TabHeight = 48.dp

@@ -214,12 +214,13 @@ class ExploreRepository @Inject constructor(
 
     /**
      * Drops live streams, videos if hidden, and adverts: those from outside any forum, which carry
-     * no forum, and promoted threads and goods, which the server marks with thread types of their own.
+     * no forum; promoted threads and goods, which the server marks with thread types of their own;
+     * and threads that carry a game's card to download it from, posted as plain threads.
      */
     private fun filter(threads: List<ThreadInfo>): List<ThreadInfo> {
         val hideVideos = videoFilter.hidesVideos()
         return threads.filter {
-            it.ala_info == null && it.forumInfo != null && it.thread_type !in PromotedThreadTypes && !(hideVideos && it.videoInfo != null)
+            it.ala_info == null && it.forumInfo != null && it.thread_type !in PromotedThreadTypes && it.game_card.isEmpty() && !(hideVideos && it.videoInfo != null)
         }
     }
 }

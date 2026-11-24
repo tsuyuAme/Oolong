@@ -368,9 +368,11 @@ private fun TitleRow(
     barButtons: BarButtons,
 ) {
     val endRoom = LocalTopBarEndRoom.current
-    // The bar's own buttons, and any glass in its title, come in with the scroll
+    // The bar's own buttons, and any glass in its title, come in with the scroll. A classic bar's
+    // are on the page, and pressed in as anything on it is
+    val onGlass = if (LocalOnClassicBar.current) null else barButtons
     ProvideContentColor(color = ExtendedTheme.colors.text) {
-        CompositionLocalProvider(LocalBarButtons provides barButtons) {
+        CompositionLocalProvider(LocalBarButtons provides onGlass) {
             SubcomposeLayout(
                 modifier = Modifier
                     .fillMaxSize()

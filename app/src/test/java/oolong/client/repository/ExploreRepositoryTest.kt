@@ -74,6 +74,7 @@ class ExploreRepositoryTest {
                 ThreadInfo(id = 4, threadId = 4),
                 ThreadInfo(id = 5, threadId = 5, forumInfo = forum, thread_type = 80),
                 ThreadInfo(id = 6, threadId = 6, forumInfo = forum, thread_type = 79),
+                ThreadInfo(id = 7, threadId = 7, forumInfo = forum, game_card = "{\"game_name\":\"x\"}"),
             ),
             thread_personalized = listOf(
                 ThreadPersonalized(tid = 1, dislikeResource = listOf(DislikeReason(dislikeReason = "看过了", dislikeId = 2, extra = "x"))),

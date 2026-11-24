@@ -681,7 +681,7 @@ private fun ReaderBottomBar(onContents: (() -> Unit)?, onText: () -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .floatingGlass(BarShape)
+                .floatingGlass(BarShape, pressable = true)
                 .padding(Spacing.xxs),
         ) {
             if (onContents != null) BarTool(Symbols.Toc, stringResource(R.string.reader_contents), onContents)
@@ -699,7 +699,8 @@ private fun BarTool(icon: ImageVector, label: String, onClick: () -> Unit) {
         modifier = Modifier
             .widthIn(min = 72.dp)
             .heightIn(min = 52.dp)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(BarShape), onClick = onClick)
+            // The glass answers the press
+            .clickable(interactionSource = null, indication = null, onClick = onClick)
             .padding(horizontal = Spacing.sm),
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = colors.text)

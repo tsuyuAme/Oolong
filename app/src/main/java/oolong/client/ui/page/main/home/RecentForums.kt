@@ -53,6 +53,7 @@ import oolong.client.model.VisitedForum
 import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
@@ -193,7 +194,7 @@ fun RecentForums(
                 .clickable(
                     enabled = rows.size > 1,
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
+                    indication = PressFeedback.Overlay,
                     role = Role.Button,
                 ) { expansion.toggle() }
                 .padding(end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xxs),

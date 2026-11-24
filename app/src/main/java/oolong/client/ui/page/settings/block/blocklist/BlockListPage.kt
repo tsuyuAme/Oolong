@@ -2,6 +2,7 @@ package oolong.client.ui.page.settings.block.blocklist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,6 +65,7 @@ import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Spacing
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TextStyles
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.navigation.BlockRuleKey
 import oolong.client.ui.navigation.Navigator
 import oolong.client.ui.page.LocalNavigator
@@ -276,12 +279,14 @@ private fun StaleBanner(count: Int, onClean: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         // A text button: no background of its own
+        val press = remember { MutableInteractionSource() }
         Text(
             text = stringResource(id = R.string.button_clean_up),
             style = TextStyles.label,
             color = colors.accent,
             modifier = Modifier
-                .clickable(interactionSource = null, indication = PressFeedback.overlay(Corners.full), onClick = onClean)
+                .pressScale(press)
+                .clickable(interactionSource = press, indication = PressFeedback.overlay(Corners.full), onClick = onClean)
                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         )
     }

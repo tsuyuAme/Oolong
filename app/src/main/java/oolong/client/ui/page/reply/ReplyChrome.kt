@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
@@ -85,6 +86,7 @@ import oolong.client.R
 import oolong.client.ui.common.theme.compose.ExtendedTheme
 import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
+import oolong.client.ui.widgets.compose.LocalPressedByGlass
 import oolong.client.ui.widgets.compose.MyBackHandler
 import oolong.client.ui.widgets.compose.floatingGlass
 import oolong.client.ui.widgets.compose.isGlassAvailable
@@ -352,13 +354,15 @@ fun ReplyChrome(
                             if (!composing && open.value == 0f) {
                                 Modifier.floatingGlass(
                                     CapsuleShape,
+                                    pressable = true,
                                     alpha = 1f - dissolveOf(grow.value),
                                 )
                             } else {
                                 Modifier
                             }
                         )
-                        .clickable(onClick = onOpenComposer),
+                        // The glass answers the press
+                        .clickable(interactionSource = null, indication = null, onClick = onOpenComposer),
                 ) {
                     Row(
                         modifier = Modifier
@@ -389,6 +393,7 @@ fun ReplyChrome(
                             if (!menuOpen && grow.value == 0f && move.value == 0f) {
                                 Modifier.floatingGlass(
                                     CapsuleShape,
+                                    pressable = true,
                                     alpha = 1f - dissolveOf(open.value),
                                 )
                             } else {
@@ -408,8 +413,10 @@ fun ReplyChrome(
                             .fillMaxHeight()
                             .padding(horizontal = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        content = actions,
-                    )
+                    ) {
+                        // Its glass answers presses on them as one piece
+                        CompositionLocalProvider(LocalPressedByGlass provides true) { actions() }
+                    }
                 }
             }
         }

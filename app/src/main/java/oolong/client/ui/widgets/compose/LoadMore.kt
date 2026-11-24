@@ -1,6 +1,7 @@
 package oolong.client.ui.widgets.compose
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,9 @@ import oolong.client.ui.common.theme.compose.ExtendedTheme
 
 private const val LoadMoreFooterKey = "LoadMoreFooter"
 
+/** Apart from the footer's key, so a list kept where it was by this row lets go of it once rows come. */
+private const val LoadMoreScreenKey = "LoadMoreScreen"
+
 /** How much of the list may be left below the screen, in screens, before the next page loads. */
 private const val PreloadScreens = 1.5f
 
@@ -43,39 +47,50 @@ private val EndPullSteps = listOf(48.dp, 96.dp)
  * with a way to retry, or, once the list has ended, that there is no more. Pulled up past its end
  * ([EndPull.Tease]) that last line answers the pull; with [pullToLoadLatest] it says instead that
  * pulling up loads the newest replies ([EndPull.Action]).
+ *
+ * With [fillScreen] the row takes a screen's height, for a list loading anew under rows that stay:
+ * those can stay where they are on screen, instead of the list falling short and moving them.
  */
 fun LazyListScope.loadMoreFooter(
     append: LoadStatus,
     hasMore: Boolean,
     onRetry: () -> Unit,
     pullToLoadLatest: Boolean = false,
+    fillScreen: Boolean = false,
 ) {
     if (append == LoadStatus.Idle && hasMore) return
-    item(key = LoadMoreFooterKey, contentType = LoadMoreFooterKey) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            when {
-                append == LoadStatus.Loading -> WavyLoader()
+    item(key = if (fillScreen) LoadMoreScreenKey else LoadMoreFooterKey, contentType = LoadMoreFooterKey) {
+        Box(modifier = if (fillScreen) Modifier.fillParentMaxHeight() else Modifier) {
+            FooterRow(append, onRetry, pullToLoadLatest)
+        }
+    }
+}
 
-                append is LoadStatus.Error -> {
-                    val message = if (append.error.isNetworkError()) R.string.title_no_internet_connectivity else R.string.title_api_error
-                    Text(
-                        text = stringResource(id = message),
-                        color = ExtendedTheme.colors.textSecondary,
-                        style = MaterialTheme.typography.body2,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = onRetry) { Text(text = stringResource(id = R.string.button_retry)) }
-                }
+@Composable
+private fun FooterRow(append: LoadStatus, onRetry: () -> Unit, pullToLoadLatest: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when {
+            append == LoadStatus.Loading -> WavyLoader()
 
-                else -> EndText(pullToLoadLatest)
+            append is LoadStatus.Error -> {
+                val message = if (append.error.isNetworkError()) R.string.title_no_internet_connectivity else R.string.title_api_error
+                Text(
+                    text = stringResource(id = message),
+                    color = ExtendedTheme.colors.textSecondary,
+                    style = MaterialTheme.typography.body2,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onRetry) { Text(text = stringResource(id = R.string.button_retry)) }
             }
+
+            else -> EndText(pullToLoadLatest)
         }
     }
 }

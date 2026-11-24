@@ -76,6 +76,7 @@ import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.BitmapImage
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.memory.MemoryCache
@@ -95,8 +96,10 @@ import oolong.client.components.automask.AutoMaskDownload
 import oolong.client.components.images.rememberImageDownloadProgress
 import oolong.client.model.ThreadPicture
 import oolong.client.toastShort
+import oolong.client.ui.common.theme.compose.Corners
 import oolong.client.ui.common.theme.compose.LocalReduceMotion
 import oolong.client.ui.common.theme.compose.Motion
+import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.SmoothCornerShape
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.page.editor.EditRequest
@@ -104,6 +107,7 @@ import oolong.client.ui.page.editor.EditorPlace
 import oolong.client.ui.page.editor.LocalImageEditor
 import oolong.client.ui.page.editor.rememberAutoMaskFiles
 import oolong.client.ui.utils.FullColorWindow
+import oolong.client.ui.utils.isHdr
 import oolong.client.ui.widgets.compose.ContextMenuItem
 import oolong.client.ui.widgets.compose.IconButton
 import oolong.client.ui.widgets.compose.MediaGlassActions
@@ -140,7 +144,6 @@ internal fun PhotoViewerOverlay(viewer: PhotoViewer, opening: PhotoOpening, orig
     val openedItem = opening.data.picItems.getOrNull(opening.data.index)
 
     LightSystemBars()
-    FullColorWindow()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val container = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
@@ -179,6 +182,9 @@ internal fun PhotoViewerOverlay(viewer: PhotoViewer, opening: PhotoOpening, orig
         // Made again once the pictures arrive, to start at the one opened
         val pagerState = remember(pictures.isNotEmpty()) { PagerState(currentPage = state.currentIndex) { pagedPictures.size } }
         val current = pictures.getOrNull(pagerState.currentPage)
+        // The pictures seen to be HDR, by id: the window turns HDR only while one of them shows
+        val hdrPictures = remember { mutableStateMapOf<String, Boolean>() }
+        FullColorWindow(hdr = current?.let { hdrPictures[it.picId] } == true)
         val currentZoom = zoomStates[pagerState.currentPage]
 
         LaunchedEffect(Unit) {
@@ -328,7 +334,10 @@ internal fun PhotoViewerOverlay(viewer: PhotoViewer, opening: PhotoOpening, orig
                         placeholder = loadedKeys[picture.picId]
                             ?: opening.thumbnail.takeIf { picture.picId == openedItem?.picId },
                         zoomState = zoomState,
-                        onLoaded = { loadedKeys[picture.picId] = it },
+                        onLoaded = { key, hdr ->
+                            loadedKeys[picture.picId] = key
+                            hdrPictures[picture.picId] = hdr
+                        },
                         onTap = { at ->
                             val share = zoomState.zoomable.contentDisplayRectF.let { shareOf(it, at) }
                             // Picking text, a tap picks a line or leaves; otherwise it closes
@@ -434,7 +443,7 @@ private fun Photo(
     picture: ThreadPicture,
     placeholder: MemoryCache.Key?,
     zoomState: CoilZoomState,
-    onLoaded: (MemoryCache.Key) -> Unit,
+    onLoaded: (key: MemoryCache.Key, hdr: Boolean) -> Unit,
     onTap: (Offset) -> Unit,
     onLongPress: (Offset) -> Unit,
     handles: Modifier,
@@ -455,7 +464,10 @@ private fun Photo(
             onLongPress = { onLongPress(it) },
             onState = { state ->
                 loading = state is AsyncImagePainter.State.Loading
-                if (state is AsyncImagePainter.State.Success) state.result.memoryCacheKey?.let(onLoaded)
+                if (state is AsyncImagePainter.State.Success) {
+                    val hdr = (state.result.image as? BitmapImage)?.bitmap?.isHdr() == true
+                    state.result.memoryCacheKey?.let { onLoaded(it, hdr) }
+                }
             },
         )
         overlay()
@@ -527,7 +539,7 @@ private fun PhotoChrome(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .padding(top = 2.dp)
-                                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = PressFeedback.overlay(Corners.xs)) {
                                     expanded = !expanded
                                 },
                         )

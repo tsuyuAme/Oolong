@@ -483,7 +483,7 @@ private fun AddressCapsule(
         modifier = modifier
             .fillMaxWidth()
             .height(GlassTopBarItemHeight)
-            .floatingGlass(CapsuleShape)
+            .floatingGlass(CapsuleShape, pressable = true)
             // Always in the chain, drawing nothing while idle: the glass under it must not see its
             // modifiers change while it draws. The capsule filled as far as the page has loaded
             .drawBehind {

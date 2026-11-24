@@ -8,7 +8,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -32,7 +31,9 @@ import androidx.compose.ui.res.stringResource
 import oolong.client.R
 
 /**
- * An icon button opening a menu of [items], which grows out of its icon and takes the icon in
+ * An icon button opening a menu of [items], which grows out of the button as it shows pressed
+ * (design-system.md §9.3): its round glass when it stands alone in a top bar, its place in a
+ * capsule it shares, or the round veil a press puts on it on the page. The menu takes the icon in
  * while it shows.
  */
 @Composable
@@ -52,15 +53,13 @@ fun MenuIconButton(
             val list = items()
             if (menus != null && list.isNotEmpty()) menuId = menus.show(list, anchor = bounds, icon = icon, iconTint = tint)
         },
-        modifier = modifier,
+        modifier = modifier.onGloballyPositioned { bounds = it.boundsInWindow() },
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier
-                .onGloballyPositioned { bounds = it.boundsInWindow() }
-                .graphicsLayer { alpha = if (open) 0f else 1f },
+            modifier = Modifier.graphicsLayer { alpha = if (open) 0f else 1f },
         )
     }
 }
@@ -104,7 +103,8 @@ fun Modifier.clickMenu(
 
 /**
  * Opens a menu of [items] where this is long-pressed, which the finger can slide onto and lift
- * over an item to pick it; a tap runs [onClick].
+ * over an item to pick it; a tap runs [onClick]. The menu grows out of the finger, as content has
+ * no edge of its own to grow from, or out of all of this [fromWhole], for a control.
  */
 @Composable
 fun Modifier.longPressMenu(
@@ -112,13 +112,15 @@ fun Modifier.longPressMenu(
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     indication: Indication? = LocalIndication.current,
+    fromWhole: Boolean = false,
+    interactionSource: MutableInteractionSource? = null,
 ): Modifier {
     val menus = LocalContextMenus.current
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var pressAt by remember { mutableStateOf(Offset.Zero) }
     // From the long press until the finger lifts, the menu follows it
     var holding by remember { mutableStateOf(false) }
-    val interaction = remember { MutableInteractionSource() }
+    val interaction = interactionSource ?: remember { MutableInteractionSource() }
     return onGloballyPositioned { coordinates = it }
         .pointerInput(menus) {
             if (menus == null) return@pointerInput
@@ -147,7 +149,8 @@ fun Modifier.longPressMenu(
                     val list = items()
                     if (list.isNotEmpty()) {
                         holding = true
-                        menus.show(list, anchor = Rect(pressAt, Size.Zero))
+                        val whole = coordinates?.takeIf { fromWhole && it.isAttached }?.boundsInWindow()
+                        menus.show(list, anchor = whole ?: Rect(pressAt, Size.Zero))
                     }
                 }
             },

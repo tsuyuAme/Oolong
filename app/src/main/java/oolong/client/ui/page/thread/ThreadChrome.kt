@@ -44,6 +44,7 @@ import oolong.client.ui.widgets.compose.BackNavigationIcon
 import oolong.client.ui.widgets.compose.GlassTopBar
 import oolong.client.ui.widgets.compose.GlassTopBarItemHeight
 import oolong.client.ui.widgets.compose.floatingGlass
+import oolong.client.ui.widgets.compose.pressedByGlass
 import oolong.client.utils.StringUtil.getShortNumString
 
 /**
@@ -64,7 +65,7 @@ internal fun ThreadTopBar(
                 Row(
                     modifier = Modifier
                         .height(GlassTopBarItemHeight)
-                        .floatingGlass(ForumCapsule)
+                        .floatingGlass(ForumCapsule, pressable = true)
                         // The glass answers the press
                         .clickable(interactionSource = null, indication = null) { onEvent(ThreadEvent.OpenForum) }
                         .padding(start = 10.dp, end = 6.dp),
@@ -128,7 +129,7 @@ private fun MenuButton(open: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(40.dp)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(CapsuleShape), onClick = onClick),
+            .clickable(interactionSource = null, indication = if (pressedByGlass()) null else PressFeedback.overlay(CapsuleShape), onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         val tint = ExtendedTheme.colors.textSecondary
@@ -162,7 +163,7 @@ private fun ThreadAgreeButton(agree: Agree, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .height(40.dp)
-            .clickable(interactionSource = null, indication = PressFeedback.overlay(CapsuleShape), onClick = onClick)
+            .clickable(interactionSource = null, indication = if (pressedByGlass()) null else PressFeedback.overlay(CapsuleShape), onClick = onClick)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),

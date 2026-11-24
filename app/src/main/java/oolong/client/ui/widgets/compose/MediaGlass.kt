@@ -64,10 +64,11 @@ fun ProvideMediaGlass(state: HazeState, content: @Composable () -> Unit) {
 @Composable
 fun MediaGlassActions(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     Row(
-        modifier = modifier.mediaGlass(SmoothCornerShape.Capsule),
+        modifier = modifier.mediaGlass(SmoothCornerShape.Capsule, pressable = true),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CompositionLocalProvider(LocalContentColor provides Color.White) { content() }
+        // The glass answers presses on them as one piece
+        CompositionLocalProvider(LocalContentColor provides Color.White, LocalPressedByGlass provides true) { content() }
     }
 }
 
@@ -85,7 +86,7 @@ fun MediaGlassButton(
     Box(
         modifier = modifier
             .size(size)
-            .mediaGlass(CircleShape, interactionSource = interaction)
+            .mediaGlass(CircleShape, pressable = enabled)
             .clip(CircleShape)
             .clickable(
                 interactionSource = interaction,
@@ -126,7 +127,7 @@ fun MediaGlassPill(
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
-            .mediaGlass(SmoothCornerShape.Capsule, interactionSource = onClick?.let { interaction })
+            .mediaGlass(SmoothCornerShape.Capsule, pressable = onClick != null)
             .then(
                 if (onClick == null) Modifier
                 else Modifier.clickable(interactionSource = interaction, indication = null, onClickLabel = onClickLabel, role = Role.Button, onClick = onClick),

@@ -1,5 +1,6 @@
 package oolong.client.ui.widgets.compose
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -480,7 +481,8 @@ fun TabClickMenu(
     val menus = LocalContextMenus.current
     var bounds by remember { mutableStateOf(Rect.Zero) }
     var menuId by remember { mutableStateOf<Long?>(null) }
-    val open = menus?.isShowing(menuId) == true
+    // Turns back as soon as the menu starts to close, not once it has gone
+    val open = menus?.isOpen(menuId) == true
     GlassTab(
         selected = selected,
         onClick = {
@@ -509,6 +511,8 @@ fun TabClickMenu(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .height(48.dp)
+                // A name that changes, as to the class chosen in its menu, takes its new width smoothly
+                .animateContentSize(Motion.snap())
                 .padding(start = 16.dp, end = 16.dp - arrowWidth * 0.75f)
         ) {
             ProvideTextStyle(value = tabTextStyle) {

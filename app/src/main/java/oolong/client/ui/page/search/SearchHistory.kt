@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import oolong.client.ui.common.theme.compose.Motion
 import oolong.client.ui.common.theme.compose.PressFeedback
 import oolong.client.ui.common.theme.compose.Symbols
 import oolong.client.ui.common.theme.compose.TiebaLiteTheme
+import oolong.client.ui.common.theme.compose.pressScale
 import oolong.client.ui.widgets.compose.Button
 
 /**
@@ -93,12 +95,14 @@ fun SearchHistoryList(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             showItem.fastForEach { searchHistory ->
+                val press = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
+                        .pressScale(press)
                         .padding(bottom = 8.dp)
                         .background(ExtendedTheme.colors.chip, Corners.full)
                         .combinedClickable(
-                            interactionSource = null,
+                            interactionSource = press,
                             indication = PressFeedback.overlay(Corners.full),
                             onClick = { onSearchHistoryClick(searchHistory) },
                             onLongClickLabel = stringResource(R.string.title_delete),

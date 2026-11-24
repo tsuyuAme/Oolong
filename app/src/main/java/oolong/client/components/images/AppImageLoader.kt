@@ -15,6 +15,12 @@ import okhttp3.OkHttpClient
  * The app's image loader: downloads through OkHttp, reporting progress to [ImageDownloadProgress],
  * and plays GIFs, and on newer systems animated WebP and HEIF too. Pictures are cached under their
  * address without the [ExpiringParameter], so one fetched again with a new one is not downloaded again.
+ *
+ * With that parameter expired or wrong, the picture server still answers with a picture: a
+ * placeholder of its own, marked only by a header ([NotAuthorisedHeader]). Taken for the picture,
+ * it was cached under the address without the parameter and then shown for good, also where the
+ * address came with a valid one, as a forum's avatar fetched once from an old visit. Such an
+ * answer counts as a failure instead.
  */
 fun newAppImageLoader(context: Context): ImageLoader {
     val client = OkHttpClient.Builder()
@@ -23,6 +29,7 @@ fun newAppImageLoader(context: Context): ImageLoader {
             val request = if (agent.isNullOrEmpty()) chain.request() else chain.request().newBuilder().header("User-Agent", agent).build()
             chain.proceed(request)
         }
+        .addInterceptor(RefusedPictures)
         .addInterceptor(ImageDownloadProgress.interceptor)
         .build()
     return ImageLoader.Builder(context)
@@ -51,8 +58,25 @@ fun newAppImageLoader(context: Context): ImageLoader {
 /** Pictures' addresses carry a signature that expires and changes between responses. */
 private const val ExpiringParameter = "tbpicau"
 
+/** Set, as "img not auth", on the placeholder the picture server sends for a refused address. */
+private const val NotAuthorisedHeader = "Error-Message"
+
+/** Turns the picture server's placeholder for a refused address into the failure it stands for. */
+internal val RefusedPictures = okhttp3.Interceptor { chain ->
+    val response = chain.proceed(chain.request())
+    val refused = response.header(NotAuthorisedHeader)
+    if (refused == null) response else response.newBuilder().code(403).message(refused).build()
+}
+
+/**
+ * Before the keys, so pictures cached before refused answers were told apart are not used: some
+ * of them are the server's placeholder.
+ */
+private const val DiskCacheKeyVersion = "v2:"
+
 /** The address without the [ExpiringParameter], or null when it has none. */
 internal fun diskCacheKey(url: String): String? {
     if (!url.contains(ExpiringParameter)) return null
-    return url.toHttpUrlOrNull()?.newBuilder()?.removeAllQueryParameters(ExpiringParameter)?.build()?.toString()
+    val stripped = url.toHttpUrlOrNull()?.newBuilder()?.removeAllQueryParameters(ExpiringParameter)?.build()?.toString() ?: return null
+    return DiskCacheKeyVersion + stripped
 }

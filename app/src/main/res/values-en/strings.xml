@@ -212,6 +212,10 @@
     <string name="toast_preparing_share_pic">Downloading image…</string>
     <string name="toast_save_pic_failed">Couldn\'t save the picture</string>
     <string name="toast_share_pic_failed">Couldn\'t share the picture</string>
+    <string name="toast_share_unavailable">Couldn\'t share</string>
+    <string name="toast_newest_first">Newest first</string>
+    <string name="toast_oldest_first">Oldest first</string>
+    <string name="toast_all_posts">All posts</string>
     <string name="title_translucent_theme_blur">Blur</string>
     <string name="title_select_color">Accent color</string>
     <string name="title_custom_color">Custom</string>
@@ -834,6 +838,7 @@
     <string name="summary_photo_picker_not_supported">The photo picker isn\'t available on this Android version</string>
     <string name="title_picker_all_images">All images</string>
     <string name="title_picker_unnamed_album">Other</string>
+    <string name="title_picker_favorites">Favorites</string>
     <string name="title_picker_empty">No images found</string>
     <string name="title_picker_no_access">Can\'t access photos</string>
     <string name="tip_picker_no_access">Allow Oolong to access your photos to choose images from your gallery</string>
@@ -842,6 +847,16 @@
     <string name="tip_picker_selected_only">Only photos you\'ve allowed access to are shown</string>
     <string name="button_picker_select_more">Select more</string>
     <string name="toast_picker_limit">You can select up to %d images</string>
+    <string name="button_picker_add">Add %1$d</string>
+    <string name="button_picker_use">Use</string>
+    <string name="button_picker_add_this">Add this</string>
+    <string name="button_picker_use_this">Use this</string>
+    <string name="tag_picker_long">Long</string>
+    <string name="tag_picker_edited">Edited</string>
+    <string name="button_picker_take_photo">Take photo</string>
+    <string name="desc_picker_select">Select</string>
+    <string name="toast_picker_no_camera">Can\'t open the camera</string>
+    <string name="title_picker_index">%1$d / %2$d</string>
     <string name="desc_show">Show</string>
     <string name="desc_input_color">Enter color manually</string>
     <string name="release_to_load_latest_posts">Release to load newest replies</string>

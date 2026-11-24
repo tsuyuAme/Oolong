@@ -151,7 +151,7 @@ fun ImageEditorScreen(
 private fun EditorTools(content: @Composable () -> Unit) {
     Row(
         modifier = Modifier
-            .floatingGlass(SmoothCornerShape.Capsule, barButton = false)
+            .floatingGlass(SmoothCornerShape.Capsule, barButton = false, pressable = true)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) { content() }
@@ -163,7 +163,8 @@ private fun EditorTool(icon: ImageVector, label: String, enabled: Boolean, onCli
     Column(
         modifier = Modifier
             .widthIn(min = 64.dp)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            // The glass answers the press
+            .clickable(interactionSource = null, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

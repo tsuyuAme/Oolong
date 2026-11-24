@@ -1,6 +1,7 @@
 package oolong.client.ui.page.picker
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +32,11 @@ import oolong.client.R
 import oolong.client.arch.AppContent
 import oolong.client.repository.AccountRepository
 import oolong.client.toastShort
+import oolong.client.ui.page.editor.EditRequest
+import oolong.client.ui.page.editor.ImageEditorHost
+import oolong.client.ui.page.editor.LocalImageEditor
+import oolong.client.ui.widgets.compose.ContextMenuHost
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -46,7 +53,12 @@ class ImagePickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        setContent { AppContent(this, accountRepository) { Content() } }
+        setContent {
+            AppContent(this, accountRepository) {
+                // Its own window: the album menu and the picture editor open in it
+                ContextMenuHost { ImageEditorHost { Content() } }
+            }
+        }
     }
 
     @Composable
@@ -76,6 +88,13 @@ class ImagePickerActivity : AppCompatActivity() {
         LaunchedEffect(Unit) {
             viewModel.limitReached.collect { toastShort(R.string.toast_picker_limit, it) }
         }
+        // A photo is taken into a file of the picker's own, given back like a picture picked
+        var photo by rememberSaveable { mutableStateOf<Uri?>(null) }
+        val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
+            val uri = photo
+            if (taken && uri != null) viewModel.captured(uri)
+        }
+        val editor = LocalImageEditor.current
 
         ImagePickerScreen(
             state = state,
@@ -83,7 +102,25 @@ class ImagePickerActivity : AppCompatActivity() {
             onBack = { finish() },
             onShowAlbum = viewModel::showAlbum,
             onToggle = viewModel::toggle,
+            onSelect = viewModel::select,
+            onMove = viewModel::move,
             onDone = ::finishWith,
+            onTakePhoto = {
+                val uri = pickerFile("photo").let(::shared)
+                photo = uri
+                try {
+                    camera.launch(uri)
+                } catch (e: ActivityNotFoundException) {
+                    toastShort(R.string.toast_picker_no_camera)
+                }
+            },
+            onEdit = { original, place ->
+                val output = pickerFile("edit")
+                val source = state.edits[original] ?: original
+                editor?.open(EditRequest(source, output), from = { place }, back = { place }) { written ->
+                    if (written) viewModel.edited(original, shared(output))
+                }
+            },
             onRequestAccess = { permissionLauncher.launch(requestedPermissions) },
             onOpenSettings = {
                 startActivity(
@@ -103,6 +140,12 @@ class ImagePickerActivity : AppCompatActivity() {
 
     private fun isGranted(permission: String) =
         ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
+    /** A new file for a photo taken or a picture edited here, in the cache the file provider shares. */
+    private fun pickerFile(kind: String): File =
+        File(cacheDir, "picker").apply { mkdirs() }.let { File(it, "$kind-${System.currentTimeMillis()}.jpg") }
+
+    private fun shared(file: File): Uri = FileProvider.getUriForFile(this, "$packageName.share.FileProvider", file)
 
     private fun finishWith(uris: List<Uri>) {
         val result = Intent()
