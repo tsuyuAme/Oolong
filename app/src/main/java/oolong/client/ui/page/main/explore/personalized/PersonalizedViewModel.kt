@@ -89,8 +89,8 @@ data class PersonalizedState(
 )
 
 /**
- * Recommended threads, loaded the first time the tab shows. Like a feed, refreshing puts the new
- * threads in front of those already loaded.
+ * Recommended threads, loaded the first time the tab shows. A pull-to-refresh replaces the list;
+ * scrolling loads more pages after it.
  */
 @HiltViewModel
 class PersonalizedViewModel @Inject constructor(
@@ -111,6 +111,10 @@ class PersonalizedViewModel @Inject constructor(
 
     /** Whether the list last loaded has been looked for, which is done once, before the first load. */
     private var keptTried = false
+
+    /** Remember list scroll so leaving the tab / opening a thread does not jump back to the top. */
+    var scrollIndex: Int = 0
+    var scrollOffset: Int = 0
 
     private data class Local(
         val disliked: Set<Long> = emptySet(),
@@ -186,7 +190,7 @@ class PersonalizedViewModel @Inject constructor(
             initialKey = 1,
             itemKey = { item: RecommendedThread -> item.thread.id },
             normalize = { it.copy(thread = Threads(it.thread)) },
-            refreshMode = RefreshMode.Prepend,
+            refreshMode = RefreshMode.Replace,  // 刷新清空列表，与官方一致
         ) { page ->
             val loaded = pager.value?.state?.value?.items.orEmpty()
             // Without loading anew as the app opens, the list shows as it was last loaded
@@ -211,12 +215,15 @@ class PersonalizedViewModel @Inject constructor(
     private fun onRefreshed(loaded: List<RecommendedThread>, threads: List<RecommendedThread>) {
         val loadedIds = loaded.mapTo(HashSet()) { it.thread.id }
         val count = threads.distinctBy { it.thread.id }.count { it.thread.id !in loadedIds }
+        // Replace mode: no "seen here" divider; still toast how many new ids vs previous list
         local.update {
             it.copy(
-                seenFrom = loaded.first().thread.id,
+                seenFrom = null,
                 lastRefresh = FeedRefresh(count, (it.lastRefresh?.id ?: 0) + 1),
             )
         }
+        scrollIndex = 0
+        scrollOffset = 0
     }
 
     private fun onRefreshFailed() {

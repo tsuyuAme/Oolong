@@ -1,0 +1,108 @@
+# 编译 Oolong 安卓客户端并上传 APK
+name: Build Android
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "构建类型"
+        required: true
+        default: debug
+        type: choice
+        options:
+          - debug
+          - release
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Assemble ${{ github.event.inputs.build_type || 'debug' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 可选：若仓库 Secrets 里配置了签名，则写出 keystore 供 release 使用
+      # Secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+      - name: Decode keystore (optional)
+        if: ${{ (github.event.inputs.build_type || 'debug') == 'release' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+            {
+              echo "keystore.file=release.keystore"
+              echo "keystore.password=$KEYSTORE_PASSWORD"
+              echo "keystore.key.alias=$KEY_ALIAS"
+              echo "keystore.key.password=$KEY_PASSWORD"
+            } > keystore.properties
+            echo "keystore.properties written"
+          else
+            echo "No KEYSTORE_BASE64 secret; release may use debug signing per build.gradle.kts"
+          fi
+
+      - name: Build debug APK
+        if: ${{ (github.event.inputs.build_type || 'debug') == 'debug' }}
+        run: ./gradlew :app:assembleDebug --stacktrace -PskipScreenshots
+
+      - name: Build release APK
+        if: ${{ (github.event.inputs.build_type || 'debug') == 'release' }}
+        run: ./gradlew :app:assembleRelease --stacktrace -PskipScreenshots
+
+      - name: Locate APKs
+        id: apk
+        run: |
+          set -e
+          mapfile -t apks < <(find app/build/outputs/apk -type f -name "*.apk" | sort)
+          if [ ${#apks[@]} -eq 0 ]; then
+            echo "No APK found under app/build/outputs/apk"
+            exit 1
+          fi
+          echo "Found APKs:"
+          printf '%s\n' "${apks[@]}"
+          # 供后续步骤使用：输出目录
+          echo "dir=app/build/outputs/apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: oolong-apk-${{ github.event.inputs.build_type || 'debug' }}-${{ github.sha }}
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload mapping (release only)
+        if: ${{ (github.event.inputs.build_type || 'debug') == 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: oolong-mapping-${{ github.sha }}
+          path: app/build/outputs/mapping/**/mapping.txt
+          if-no-files-found: ignore
+          retention-days: 14

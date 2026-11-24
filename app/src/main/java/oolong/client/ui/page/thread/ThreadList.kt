@@ -286,14 +286,16 @@ internal fun ThreadHeader(
             modifier = Modifier
                 .matchedGeometryAnchor(ReplyHeader)
                 .background(ExtendedTheme.colors.background)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 回复数在前，筛选紧随其后（与旧版顺序一致）
             Text(
                 text = stringResource(R.string.title_thread_header, "${(state.thread?.replyCount ?: 1) - 1}"),
-                fontSize = 15.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = ExtendedTheme.colors.text,
+                maxLines = 1,
             )
             Spacer(modifier = Modifier.weight(1f))
             // Controls, so their text grows only as far as the bars' does, leaving the count its room
